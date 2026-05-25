@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environments
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Runtime data
+img/
+result/
+models/
+
+# Large model artifacts if copied outside models/
+*.pt
+*.pth
+*.onnx
+*.engine
+*.safetensors
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
