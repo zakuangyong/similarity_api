@@ -5,6 +5,7 @@ import datetime as dt
 from html import escape
 from io import BytesIO
 from pathlib import Path
+import textwrap
 import unicodedata
 from urllib.parse import quote
 
@@ -1287,7 +1288,8 @@ def _render_top5_pentagon(rows: list[dict], query_image_path: Path, selected_can
         return
 
     st.markdown(
-        f"""
+        _html_block(
+            f"""
         <div class="pentagon-stage">
           <div class="pentagon-arena">
             <div class="pentagon-card pentagon-center">
@@ -1298,6 +1300,7 @@ def _render_top5_pentagon(rows: list[dict], query_image_path: Path, selected_can
           </div>
         </div>
         """,
+        ),
         unsafe_allow_html=True,
     )
 
@@ -1472,10 +1475,14 @@ def _rank_header_label() -> str:
     )
 
 
+def _html_block(s: str) -> str:
+    return textwrap.dedent(s).strip()
+
+
+
 st.set_page_config(page_title="汽车图片相似度比对", layout="wide", initial_sidebar_state="collapsed")
 st.markdown(APP_CSS, unsafe_allow_html=True)
 st.title("汽车图片相似度比对")
-st.caption("上传单张待比对图片，系统会依次与图片库中的每张图片完成相似度比对。")
 
 gallery_dir = DEFAULT_GALLERY_DIR
 upload_root = DEFAULT_UPLOAD_ROOT
