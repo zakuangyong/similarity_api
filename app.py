@@ -4,6 +4,7 @@ import base64
 import datetime as dt
 from html import escape
 from io import BytesIO
+import json
 from pathlib import Path
 import textwrap
 import unicodedata
@@ -1013,6 +1014,39 @@ def _clear_query_params() -> None:
         st.experimental_set_query_params()
 
 
+def _normalize_report_payload(payload: dict, output_dir: Path) -> dict:
+    query_obj = payload.get("query") or {}
+    run_id = str(payload.get("run_id", ""))
+    reports_dir = output_dir / "reports"
+    return {
+        "run_id": run_id,
+        "query_id": query_obj.get("id", ""),
+        "query": query_obj.get("path", ""),
+        "query_staged_path": query_obj.get("staged_path", ""),
+        "gallery_count": payload.get("gallery_count", 0),
+        "results": payload.get("results") or [],
+        "outputs": payload.get("outputs") or {},
+        "reports": payload.get("reports")
+        or {
+            "json": str(reports_dir / f"{run_id}.json"),
+            "markdown": str(reports_dir / f"{run_id}.md"),
+            "latest_json": str(output_dir / "latest_report.json"),
+            "latest_markdown": str(output_dir / "latest_report.md"),
+        },
+    }
+
+
+def _load_latest_result(output_dir: Path) -> dict | None:
+    latest = output_dir / "latest_report.json"
+    if not latest.is_file():
+        return None
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    return _normalize_report_payload(payload, output_dir)
+
+
 def _img_to_data_uri(
     img: Image.Image,
     *,
@@ -1275,7 +1309,7 @@ def _render_top5_pentagon(rows: list[dict], query_image_path: Path, selected_can
         nodes_html.append(
             _html_block(
                 f"""
-<a class="{klass}" href="{href}">
+<a class="{klass}" href="{href}" target="_self" title="点击展开 Top{idx} 详情">
   <span class="pentagon-badge pentagon-rank">Top{idx}</span>
   <span class="pentagon-badge pentagon-score">{escape(_fmt_score(row.get("final_score")))}</span>
   <img class="pentagon-img" src="{cand_uri}" alt="{escape(candidate_id)}" />
@@ -1325,30 +1359,34 @@ def _render_part_row_compact_scroll(part: str, detail: dict) -> None:
         return
 
     tiles_html = "".join(
-        f"""
-        <div class="part-tile">
-          <img src="{uri}" alt="{escape(cap)}" />
-          <div class="part-cap">{escape(cap)}</div>
-        </div>
-        """
+        _html_block(
+            f"""
+<div class="part-tile">
+  <img src="{uri}" alt="{escape(cap)}" />
+  <div class="part-cap">{escape(cap)}</div>
+</div>
+"""
+        )
         for cap, uri in tiles
     )
-    score_html = f"""
-    <div class="part-scorebox">
-      <div class="part-score-top">
-        <div class="part-score-big">{escape(fused)}</div>
-        <div class="part-score-id">{escape(f"part={part}")}</div>
-      </div>
-      <div class="part-score-grid">
-        <div><span>CLIP</span>{escape(_fmt_score(detail.get("clip")))}</div>
-        <div><span>DINO</span>{escape(_fmt_score(detail.get("dino")))}</div>
-        <div><span>SSIM</span>{escape(_fmt_score(detail.get("ssim")))}</div>
-        <div><span>EDGE</span>{escape(_fmt_score(detail.get("edge")))}</div>
-        <div><span>W</span>{escape(f"C{_fmt_weight(weights.get('clip'))} D{_fmt_weight(weights.get('dino'))}")}</div>
-        <div><span>&nbsp;</span>{escape(f"S{_fmt_weight(weights.get('ssim'))} E{_fmt_weight(weights.get('edge'))}")}</div>
-      </div>
-    </div>
-    """
+    score_html = _html_block(
+        f"""
+<div class="part-scorebox">
+  <div class="part-score-top">
+    <div class="part-score-big">{escape(fused)}</div>
+    <div class="part-score-id">{escape(f"part={part}")}</div>
+  </div>
+  <div class="part-score-grid">
+    <div><span>CLIP</span>{escape(_fmt_score(detail.get("clip")))}</div>
+    <div><span>DINO</span>{escape(_fmt_score(detail.get("dino")))}</div>
+    <div><span>SSIM</span>{escape(_fmt_score(detail.get("ssim")))}</div>
+    <div><span>EDGE</span>{escape(_fmt_score(detail.get("edge")))}</div>
+    <div><span>W</span>{escape(f"C{_fmt_weight(weights.get('clip'))} D{_fmt_weight(weights.get('dino'))}")}</div>
+    <div><span>&nbsp;</span>{escape(f"S{_fmt_weight(weights.get('ssim'))} E{_fmt_weight(weights.get('edge'))}")}</div>
+  </div>
+</div>
+"""
+    )
 
     st.markdown('<div class="report-row">', unsafe_allow_html=True)
     st.markdown(
@@ -1356,14 +1394,16 @@ def _render_part_row_compact_scroll(part: str, detail: dict) -> None:
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"""
-        <div class="part-scroll" data-drag-scroll>
-          <div class="part-grid">
-            {tiles_html}
-            {score_html}
-          </div>
-        </div>
-        """,
+        _html_block(
+            f"""
+<div class="part-scroll" data-drag-scroll>
+  <div class="part-grid">
+    {tiles_html}
+    {score_html}
+  </div>
+</div>
+        """
+        ),
         unsafe_allow_html=True,
     )
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1377,6 +1417,7 @@ def _render_detail_view(row: dict, label_dir: Path, query_label: Path | None) ->
     actions_l, actions_r = st.columns([1, 1], gap="small")
     with actions_l:
         if st.button("返回 Top5", type="secondary"):
+            st.session_state.pop("selected_candidate_id", None)
             _clear_query_params()
             try:
                 st.rerun()
@@ -1529,6 +1570,7 @@ with spacer_col:
     st.empty()
 
 if start and uploaded is not None:
+    st.session_state.pop("selected_candidate_id", None)
     query_path = _save_upload(uploaded, upload_root)
     with st.spinner("正在执行相似度计算，请稍候..."):
         result = run_pipeline(
@@ -1543,6 +1585,13 @@ if start and uploaded is not None:
             skip_cutout=bool(skip_cutout),
         )
     st.session_state["last_result"] = result
+    _clear_query_params()
+
+qp = _get_query_params()
+if st.session_state.get("last_result") is None and qp.get("cid"):
+    restored = _load_latest_result(output_dir)
+    if restored:
+        st.session_state["last_result"] = restored
 
 result = st.session_state.get("last_result")
 if result:
@@ -1554,13 +1603,16 @@ if result:
     label_dir = Path(outputs.get("front_label", ""))
     query_label = _find_label(label_dir, result.get("query_id", ""))
 
-    qp = _get_query_params()
-    selected_cid = qp.get("cid")
+    selected_cid = qp.get("cid") or st.session_state.get("selected_candidate_id")
     rows_by_id = {str(x.get("candidate_id")): x for x in rows}
 
     if selected_cid and selected_cid in rows_by_id:
+        st.session_state["selected_candidate_id"] = selected_cid
         _render_detail_view(rows_by_id[selected_cid], label_dir, query_label)
     else:
+        if selected_cid:
+            st.session_state.pop("selected_candidate_id", None)
+            _clear_query_params()
         query_path = Path(str(result.get("query", "")))
         if query_path.is_file():
             _render_top5_pentagon(rows, query_path, selected_cid)
