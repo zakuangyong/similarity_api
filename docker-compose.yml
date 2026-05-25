@@ -2,6 +2,11 @@ services:
   car-similarity-app:
     build:
       context: .
+      args:
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://mirrors.aliyun.com/debian}
+        DEBIAN_SECURITY_MIRROR: ${DEBIAN_SECURITY_MIRROR:-http://mirrors.aliyun.com/debian-security}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-mirrors.aliyun.com}
     image: car-similarity-app:latest
     container_name: car-similarity-app
     restart: unless-stopped

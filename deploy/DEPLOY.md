@@ -41,6 +41,34 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 The GPU mode requires NVIDIA Driver and NVIDIA Container Toolkit on the server.
 
+## Build mirrors
+
+The Docker build defaults to Aliyun mirrors:
+
+- Debian APT: `http://mirrors.aliyun.com/debian`
+- Debian security: `http://mirrors.aliyun.com/debian-security`
+- PyPI: `https://mirrors.aliyun.com/pypi/simple`
+
+To use Tsinghua mirrors instead:
+
+```bash
+DEBIAN_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/debian \
+DEBIAN_SECURITY_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/debian-security \
+PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
+
+To use USTC mirrors:
+
+```bash
+DEBIAN_MIRROR=https://mirrors.ustc.edu.cn/debian \
+DEBIAN_SECURITY_MIRROR=https://mirrors.ustc.edu.cn/debian-security \
+PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple \
+PIP_TRUSTED_HOST=mirrors.ustc.edu.cn \
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
+
 ## Operations
 
 ```bash

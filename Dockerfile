@@ -1,17 +1,26 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
+
+ARG DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
+ARG DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
+ARG PIP_TRUSTED_HOST=mirrors.aliyun.com
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_INDEX_URL=${PIP_INDEX_URL} \
+    PIP_TRUSTED_HOST=${PIP_TRUSTED_HOST} \
     STREAMLIT_SERVER_HEADLESS=true
 
 WORKDIR /app
 
-RUN apt-get update \
+RUN set -eux; \
+    sed -i \
+        -e "s|http://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g" \
+        -e "s|http://deb.debian.org/debian|${DEBIAN_MIRROR}|g" \
+        /etc/apt/sources.list.d/debian.sources; \
+    apt-get update \
     && apt-get install -y --no-install-recommends \
-        curl \
-        ffmpeg \
-        git \
         libgl1 \
         libglib2.0-0 \
         libgomp1 \
