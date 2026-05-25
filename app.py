@@ -1273,14 +1273,16 @@ def _render_top5_pentagon(rows: list[dict], query_image_path: Path, selected_can
             klass += " pentagon-selected"
         href = f"?view=detail&cid={quote(candidate_id)}"
         nodes_html.append(
-            f"""
-            <a class="{klass}" href="{href}">
-              <span class="pentagon-badge pentagon-rank">Top{idx}</span>
-              <span class="pentagon-badge pentagon-score">{escape(_fmt_score(row.get("final_score")))}</span>
-              <img class="pentagon-img" src="{cand_uri}" alt="{escape(candidate_id)}" />
-              <div class="pentagon-name">{escape(candidate_id)}</div>
-            </a>
-            """
+            _html_block(
+                f"""
+<a class="{klass}" href="{href}">
+  <span class="pentagon-badge pentagon-rank">Top{idx}</span>
+  <span class="pentagon-badge pentagon-score">{escape(_fmt_score(row.get("final_score")))}</span>
+  <img class="pentagon-img" src="{cand_uri}" alt="{escape(candidate_id)}" />
+  <div class="pentagon-name">{escape(candidate_id)}</div>
+</a>
+"""
+            )
         )
 
     if not nodes_html:
