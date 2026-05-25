@@ -5,6 +5,7 @@ import datetime as dt
 from html import escape
 from io import BytesIO
 from pathlib import Path
+import unicodedata
 
 import streamlit as st
 from PIL import Image
@@ -564,35 +565,76 @@ APP_CSS = """
         white-space: nowrap;
     }
     .rank-list-header {
-        display: grid;
-        grid-template-columns: 54px minmax(220px, 1fr) 88px 88px 88px minmax(180px, 0.9fr);
-        gap: 8px;
+        display: block;
         padding: 8px 12px;
         margin-top: 6px;
         background: #151c25;
         border: 1px solid #303946;
         border-radius: 8px;
         color: #f4f8ff;
-        font-size: 12px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
         font-weight: 800;
+        white-space: pre;
     }
     .rank-row-summary {
         display: grid;
-        grid-template-columns: 54px minmax(220px, 1fr) 88px 88px 88px minmax(180px, 0.9fr);
+        grid-template-columns: 48px minmax(260px, 1fr) 86px 86px 86px 96px;
         gap: 8px;
         width: 100%;
         align-items: center;
+        color: #e8f1ff;
+        font-size: 13px;
+        font-weight: 700;
     }
     .rank-row-summary span {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    .rank-row-summary .rank-score-cell {
+        color: #7fd0ff !important;
+        font-weight: 800;
+    }
+    div[data-testid="stExpander"] summary p {
+        font-family: Consolas, "Courier New", monospace !important;
+        font-size: 13px !important;
+        line-height: 1.25 !important;
+        white-space: pre !important;
+    }
+    .result-image-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(3, minmax(180px, 260px));
+        justify-content: start;
+        margin: 10px 0 14px;
+    }
+    .result-image-grid img {
+        background: #ffffff;
+        border-radius: 6px;
+        display: block;
+        max-height: 190px;
+        object-fit: contain;
+        width: 100%;
+    }
     .part-support-note {
         color: #9aa8b8;
         font-size: 13px;
         text-align: left;
         margin: 2px 0 4px;
+    }
+    .upload-placeholder {
+        align-items: center;
+        background: #0c1117;
+        border: 1px dashed #303946;
+        border-radius: 8px;
+        color: #9aa8b8;
+        display: flex;
+        font-size: 14px;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 260px;
+        margin-top: 10px;
     }
 </style>
 """
@@ -648,19 +690,34 @@ def _gallery_preview_items(gallery_dir: str, limit: int = 12) -> list[tuple[str,
 
 
 def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
-    preview_items = _gallery_preview_items(str(gallery_dir), limit=12)
-    thumbs = "".join(
+    items = _gallery_preview_items(str(gallery_dir), limit=12)
+    if not items:
+        st.info(f"当前图库图片数量: {gallery_count}（暂无可预览图片）")
+        return
+
+    thumbs = "\n".join(
         f"""
         <div class="gallery-thumb">
-            <img src="{uri}" alt="{escape(name)}">
-            <div class="gallery-thumb-name" title="{escape(name)}">{escape(name)}</div>
+            <img src="{uri}" alt="{escape(name)}" />
+            <div class="gallery-thumb-name">{escape(name)}</div>
         </div>
         """
-        for name, uri in preview_items
+        for name, uri in items
     )
-    empty = '<div class="muted">暂无可预览图片</div>' if not preview_items else ""
-    with st.expander(f"当前图库图片数量: {gallery_count}    图库预览", expanded=False):
-        st.markdown(f'<div class="gallery-grid">{thumbs}{empty}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="gallery-preview">
+            <div class="gallery-preview-head">
+                <div class="gallery-count">图库数量: {gallery_count}</div>
+                <div class="gallery-title">图库预览</div>
+            </div>
+            <div class="muted" style="margin-top: 4px;">{escape(str(gallery_dir))}</div>
+            <div style="height: 10px;"></div>
+            <div class="gallery-grid">{thumbs}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _save_upload(file, upload_root: Path) -> Path:
@@ -696,6 +753,18 @@ def _fmt_weight(value) -> str:
         return f"{float(value):.2f}"
     except (TypeError, ValueError):
         return "0.00"
+
+
+def _display_width(value: str) -> int:
+    return sum(2 if unicodedata.east_asian_width(ch) in {"F", "W"} else 1 for ch in value)
+
+
+def _pad_display(value: str, width: int, align: str = "left") -> str:
+    text = str(value)
+    pad = max(0, width - _display_width(text))
+    if align == "right":
+        return " " * pad + text
+    return text + " " * pad
 
 
 @st.cache_data(show_spinner=False)
@@ -825,25 +894,20 @@ def _render_run_summary(result: dict, rows: list[dict]) -> None:
 
 
 def _render_result_detail(row: dict, label_dir: Path, query_label: Path | None) -> None:
-    header_col, info_col = st.columns([5, 1])
-    with header_col:
-        st.markdown("**本版比对结果**")
-    with info_col:
-        with st.popover("ⓘ CDSE"):
-            _render_cdse_info()
+    st.markdown("**本版比对结果**")
 
     c1, c2, c3 = st.columns(3)
     with c1:
         if query_label:
-            st.image(str(query_label), caption="待比对图片部件标注", use_container_width=True)
+            st.image(str(query_label), caption="待比对图片部件标注", width=260)
     with c2:
         cand_label = _find_label(label_dir, row["candidate_id"])
         if cand_label:
-            st.image(str(cand_label), caption="图库图片部件标注", use_container_width=True)
+            st.image(str(cand_label), caption="图库图片部件标注", width=260)
     with c3:
         diff = row.get("contour_diff_image")
         if diff:
-            st.image(diff, caption="整车轮廓差异图", use_container_width=True)
+            st.image(diff, caption="整车轮廓差异图", width=260)
 
     st.markdown("**评判分析**")
     for point in row.get("analysis") or []:
@@ -858,12 +922,27 @@ def _render_result_detail(row: dict, label_dir: Path, query_label: Path | None) 
 
 
 def _rank_expander_label(idx: int, row: dict) -> str:
-    valid_parts = ", ".join((row.get("part_scores") or {}).keys()) or "-"
+    image_name = str(row["candidate_id"])
+    while _display_width(image_name) > 46:
+        image_name = image_name[:-2] + "..."
     return (
-        f"{idx}  |  {row['candidate_id']}  |  最终分 {_fmt_score(row.get('final_score'))}"
-        f"  |  轮廓分 {_fmt_score(row.get('contour_score'))}"
-        f"  |  部件分 {_fmt_score(row.get('part_score'))}"
-        f"  |  有效部件 {valid_parts}  |  详情"
+        f"{_pad_display(str(idx), 4)}"
+        f"{_pad_display(image_name, 48)}"
+        f"{_pad_display(_fmt_score(row.get('final_score')), 8, 'right')}"
+        f"{_pad_display(_fmt_score(row.get('contour_score')), 8, 'right')}"
+        f"{_pad_display(_fmt_score(row.get('part_score')), 8, 'right')}"
+        f"{_pad_display('详情', 10, 'right')}"
+    )
+
+
+def _rank_header_label() -> str:
+    return (
+        f"{_pad_display('排名', 4)}"
+        f"{_pad_display('图库图片', 48)}"
+        f"{_pad_display('最终分', 8, 'right')}"
+        f"{_pad_display('轮廓分', 8, 'right')}"
+        f"{_pad_display('部件分', 8, 'right')}"
+        f"{_pad_display('详情', 10, 'right')}"
     )
 
 
@@ -871,6 +950,8 @@ st.set_page_config(page_title="汽车图片相似度比对", layout="wide", init
 st.markdown(APP_CSS, unsafe_allow_html=True)
 st.title("汽车图片相似度比对")
 st.caption("上传单张待比对图片，系统会依次与图片库中的每张图片完成相似度比对。")
+with st.expander("方法说明", expanded=False):
+    _render_cdse_info()
 
 gallery_dir = DEFAULT_GALLERY_DIR
 upload_root = DEFAULT_UPLOAD_ROOT
@@ -880,23 +961,25 @@ device_choice = "auto"
 topk = DEFAULT_TOPK
 skip_cutout = False
 
-gallery_count = _count_gallery(gallery_dir)
-_render_gallery_preview(gallery_dir, gallery_count)
-
 selected_parts = DEFAULT_PARTS
-left, right = st.columns([1.45, 1], gap="large")
-with left:
+gallery_count = _count_gallery(gallery_dir)
+
+upload_col, gallery_col = st.columns([1.35, 1], gap="large")
+with upload_col:
     uploaded = st.file_uploader("上传待比对图片", type=["jpg", "jpeg", "png", "webp", "bmp"])
     if uploaded is not None:
-        st.image(uploaded, caption="待比对图片", use_container_width=True)
-
-with right:
+        st.image(uploaded, caption="待比对图片", width=260)
+    else:
+        st.markdown('<div class="upload-placeholder">待比对图片信息</div>', unsafe_allow_html=True)
     start = st.button(
         "开始比对",
         type="primary",
         use_container_width=True,
         disabled=uploaded is None or gallery_count <= 0,
     )
+
+with gallery_col:
+    _render_gallery_preview(gallery_dir, gallery_count)
 
 if start and uploaded is not None:
     query_path = _save_upload(uploaded, upload_root)
@@ -927,16 +1010,7 @@ if result:
     query_label = _find_label(label_dir, result.get("query_id", ""))
 
     st.markdown(
-        """
-        <div class="rank-list-header">
-            <span>排名</span>
-            <span>图库图片</span>
-            <span>最终分</span>
-            <span>轮廓分</span>
-            <span>部件分</span>
-            <span>详情</span>
-        </div>
-        """,
+        f'<div class="rank-list-header">{escape(_rank_header_label())}</div>',
         unsafe_allow_html=True,
     )
     for idx, row in enumerate(rows[: int(topk)], start=1):

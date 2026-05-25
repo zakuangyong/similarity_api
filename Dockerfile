@@ -43,15 +43,15 @@ RUN python -m pip config set global.index-url "${PIP_INDEX_URL}" \
 RUN pip install \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
-        --index-url "${TORCH_INDEX_URL}" \
-        --extra-index-url "${PIP_INDEX_URL}" \
+        --index-url "${PIP_INDEX_URL}" \
+        --find-links "${TORCH_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
     && python -c "import torch; print('build torch cuda:', torch.version.cuda); assert torch.version.cuda == '12.8', torch.version.cuda"
 
 RUN pip install -r requirements.txt \
         -c constraints-cu128.txt \
         --index-url "${PIP_INDEX_URL}" \
-        --extra-index-url "${TORCH_INDEX_URL}" \
+        --find-links "${TORCH_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
     && python -c "import torch; print('final torch cuda:', torch.version.cuda); assert torch.version.cuda == '12.8', torch.version.cuda" \
     && python -m pip check
