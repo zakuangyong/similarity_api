@@ -29,3 +29,5 @@ models/
 Thumbs.db
 .idea/
 .vscode/
+.superpowers/
+docs/*

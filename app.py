@@ -6,8 +6,10 @@ from html import escape
 from io import BytesIO
 from pathlib import Path
 import unicodedata
+from urllib.parse import quote
 
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image
 
 from similarity_pipeline import IMAGE_EXTS, ROOT, _safe_name, run_pipeline
@@ -644,6 +646,252 @@ APP_CSS = """
         min-height: 260px;
         margin-top: 10px;
     }
+    .pentagon-stage {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(21, 28, 37, 0.9), rgba(12, 17, 23, 0.96));
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+        padding: 18px;
+        margin-top: 12px;
+    }
+    .pentagon-arena {
+        position: relative;
+        max-width: 980px;
+        margin: 0 auto;
+        height: 700px;
+        border-radius: 18px;
+        background: radial-gradient(560px 420px at 50% 48%, rgba(46, 168, 229, 0.14), transparent 60%);
+    }
+    .pentagon-card {
+        background: #0b0f15;
+        border: 1px solid rgba(42, 52, 66, 0.85);
+        border-radius: 14px;
+        position: absolute;
+        overflow: hidden;
+        transition: transform 140ms ease, border-color 140ms ease;
+        text-decoration: none;
+        color: inherit;
+    }
+    .pentagon-selected {
+        border-color: rgba(255, 59, 48, 0.85) !important;
+        box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.18);
+    }
+    .pentagon-card:hover {
+        transform: translateY(-4px) scale(1.01);
+        border-color: rgba(46, 168, 229, 0.65);
+    }
+    .pentagon-center {
+        width: 460px;
+        left: 50%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        cursor: default;
+        box-shadow: 0 26px 70px rgba(0, 0, 0, 0.35);
+    }
+    .pentagon-node {
+        width: 216px;
+        z-index: 3;
+        cursor: pointer;
+    }
+    .pentagon-p1 {
+        left: 50%;
+        top: 8%;
+        transform: translate(-50%, -50%);
+    }
+    .pentagon-p2 {
+        left: 12%;
+        top: 34%;
+        transform: translate(-50%, -50%);
+    }
+    .pentagon-p3 {
+        left: 88%;
+        top: 34%;
+        transform: translate(-50%, -50%);
+    }
+    .pentagon-p4 {
+        left: 30%;
+        top: 97%;
+        transform: translate(-50%, -50%);
+    }
+    .pentagon-p5 {
+        left: 70%;
+        top: 97%;
+        transform: translate(-50%, -50%);
+    }
+    .pentagon-img {
+        display: block;
+        width: 100%;
+        background: #ffffff;
+        object-fit: contain;
+    }
+    .pentagon-center .pentagon-img {
+        aspect-ratio: 16 / 11;
+        max-height: 360px;
+    }
+    .pentagon-node .pentagon-img {
+        aspect-ratio: 4 / 3;
+        max-height: 200px;
+    }
+    .pentagon-name {
+        padding: 8px 10px 9px;
+        border-top: 1px solid rgba(42, 52, 66, 0.6);
+        color: rgba(200, 214, 230, 0.92);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .pentagon-badge {
+        position: absolute;
+        top: 8px;
+        padding: 4px 7px;
+        border-radius: 10px;
+        backdrop-filter: blur(6px);
+        font-weight: 900;
+        font-size: 12px;
+        line-height: 1;
+        background: rgba(0, 0, 0, 0.55);
+    }
+    .pentagon-rank {
+        left: 8px;
+        border: 1px solid rgba(46, 168, 229, 0.42);
+        color: rgba(237, 244, 255, 0.95);
+        background: rgba(8, 26, 42, 0.5);
+    }
+    .pentagon-score {
+        right: 8px;
+        border: 1px solid rgba(255, 59, 48, 0.78);
+        color: #ffd8d6;
+    }
+    .detail-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 12px 0 10px;
+    }
+    .detail-title {
+        font-size: 16px;
+        font-weight: 900;
+        margin: 0;
+    }
+    .detail-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(46, 168, 229, 0.35);
+        background: rgba(8, 26, 42, 0.35);
+        font-weight: 900;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    .detail-pill-score {
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 59, 48, 0.8);
+        color: #ffd8d6;
+        border-radius: 999px;
+        padding: 4px 8px;
+    }
+    .part-scroll {
+        border-radius: 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 6px;
+        cursor: grab;
+        user-select: none;
+    }
+    .part-scroll:active {
+        cursor: grabbing;
+    }
+    .part-scroll::-webkit-scrollbar {
+        height: 10px;
+    }
+    .part-scroll::-webkit-scrollbar-track {
+        background: rgba(12, 17, 23, 0.35);
+        border-radius: 999px;
+    }
+    .part-scroll::-webkit-scrollbar-thumb {
+        background: rgba(46, 168, 229, 0.35);
+        border: 1px solid rgba(46, 168, 229, 0.25);
+        border-radius: 999px;
+    }
+    .part-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 92px;
+        gap: 10px;
+        align-items: start;
+        width: max-content;
+        padding-right: 4px;
+    }
+    .part-tile {
+        width: 92px;
+        border: 1px solid rgba(48, 57, 70, 0.85);
+        background: rgba(12, 17, 23, 0.5);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .part-tile img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        display: block;
+        background: #ffffff;
+    }
+    .part-cap {
+        padding: 7px 8px;
+        border-top: 1px solid rgba(48, 57, 70, 0.55);
+        color: rgba(154, 168, 184, 0.95);
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .part-scorebox {
+        width: 220px;
+        border: 1px solid rgba(255, 59, 48, 0.5);
+        background: rgba(21, 28, 37, 0.52);
+        border-radius: 12px;
+        padding: 9px 10px;
+        display: grid;
+        gap: 8px;
+        min-height: 92px;
+    }
+    .part-score-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .part-score-big {
+        font-weight: 1000;
+        color: rgba(255, 216, 214, 0.95);
+        font-size: 18px;
+        letter-spacing: 0.2px;
+    }
+    .part-score-id {
+        color: rgba(154, 168, 184, 0.95);
+        font-weight: 900;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+    .part-score-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px 10px;
+        color: rgba(255, 216, 214, 0.92);
+        font-weight: 900;
+        font-size: 11px;
+    }
+    .part-score-grid span {
+        color: rgba(154, 168, 184, 0.95);
+        font-weight: 900;
+        margin-right: 6px;
+    }
 </style>
 """
 
@@ -676,30 +924,9 @@ def _gallery_image_paths(gallery_dir: Path, limit: int = 12) -> list[Path]:
     return paths
 
 
-@st.cache_data(show_spinner=False)
-def _gallery_preview_items(gallery_dir: str, limit: int = 12) -> list[tuple[str, str]]:
-    items: list[tuple[str, str]] = []
-    for path in _gallery_image_paths(Path(gallery_dir), limit=limit):
-        try:
-            with Image.open(path) as img:
-                img = img.convert("RGB")
-                img.thumbnail((180, 120), Image.LANCZOS)
-                canvas = Image.new("RGB", (180, 120), "white")
-                x = (180 - img.width) // 2
-                y = (120 - img.height) // 2
-                canvas.paste(img, (x, y))
-                buffer = BytesIO()
-                canvas.save(buffer, format="JPEG", quality=85)
-            uri = "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
-            items.append((path.name, uri))
-        except Exception:
-            continue
-    return items
-
-
 def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
-    items = _gallery_preview_items(str(gallery_dir), limit=12)
-    head_l, head_r = st.columns([1, 1], gap="small")
+    preview_paths = _gallery_image_paths(gallery_dir, limit=12)
+    head_l, head_r = st.columns([1.25, 0.75], gap="small")
     with head_l:
         st.markdown(
             f"""
@@ -713,19 +940,15 @@ def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
         )
     with head_r:
         with st.popover("图库预览"):
-            if not items:
+            if not preview_paths:
                 st.caption("暂无可预览图片")
             else:
-                thumbs = "\n".join(
-                    f"""
-                    <div class="gallery-thumb">
-                        <img src="{uri}" alt="{escape(name)}" />
-                        <div class="gallery-thumb-name">{escape(name)}</div>
-                    </div>
-                    """
-                    for name, uri in items
-                )
-                st.markdown(f'<div class="gallery-grid">{thumbs}</div>', unsafe_allow_html=True)
+                for start in range(0, len(preview_paths), 4):
+                    batch = preview_paths[start : start + 4]
+                    cols = st.columns(min(4, len(batch)), gap="small")
+                    for col, path in zip(cols, batch):
+                        with col:
+                            st.image(str(path), caption=path.name, width=120)
 
 
 def _save_upload(file, upload_root: Path) -> Path:
@@ -745,6 +968,83 @@ def _find_label(label_dir: Path, item_id: str) -> Path | None:
         if p.suffix.lower() in IMAGE_EXTS:
             return p
     return None
+
+
+def _get_query_params() -> dict[str, str]:
+    try:
+        qp = st.query_params  # type: ignore[attr-defined]
+        out: dict[str, str] = {}
+        for k in qp.keys():
+            v = qp.get_all(k)  # type: ignore[attr-defined]
+            if not v:
+                continue
+            out[str(k)] = str(v[0])
+        return out
+    except Exception:
+        raw = st.experimental_get_query_params()
+        out2: dict[str, str] = {}
+        for k, v in (raw or {}).items():
+            if not v:
+                continue
+            if isinstance(v, list):
+                out2[str(k)] = str(v[0])
+            else:
+                out2[str(k)] = str(v)
+        return out2
+
+
+def _set_query_params(**params: str) -> None:
+    clean = {k: v for k, v in params.items() if v is not None and str(v) != ""}
+    try:
+        qp = st.query_params  # type: ignore[attr-defined]
+        qp.clear()  # type: ignore[attr-defined]
+        for k, v in clean.items():
+            qp[k] = v  # type: ignore[index]
+    except Exception:
+        st.experimental_set_query_params(**clean)
+
+
+def _clear_query_params() -> None:
+    try:
+        qp = st.query_params  # type: ignore[attr-defined]
+        qp.clear()  # type: ignore[attr-defined]
+    except Exception:
+        st.experimental_set_query_params()
+
+
+def _img_to_data_uri(
+    img: Image.Image,
+    *,
+    max_size: tuple[int, int] = (520, 360),
+    fmt: str = "PNG",
+    quality: int = 85,
+) -> str:
+    out = img.copy()
+    out.thumbnail(max_size, Image.LANCZOS)
+    buffer = BytesIO()
+    fmt_u = fmt.upper()
+    if fmt_u in {"JPG", "JPEG"}:
+        out = out.convert("RGB")
+        out.save(buffer, format="JPEG", quality=int(quality))
+        mime = "image/jpeg"
+    else:
+        out.save(buffer, format="PNG", optimize=True)
+        mime = "image/png"
+    b64 = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:{mime};base64,{b64}"
+
+
+@st.cache_data(show_spinner=False)
+def _thumb_uri_for_path(path_str: str, mtime: float, size: tuple[int, int] = (240, 180)) -> str | None:
+    path = Path(path_str)
+    if not path.is_file():
+        return None
+    try:
+        with Image.open(path) as img:
+            img = img.convert("RGB")
+            return _img_to_data_uri(img, max_size=size, fmt="JPEG", quality=85)
+    except Exception:
+        return None
 
 
 def _fmt_score(value) -> str:
@@ -901,6 +1201,224 @@ def _render_run_summary(result: dict, rows: list[dict]) -> None:
     )
 
 
+def _ensure_drag_scroll_js() -> None:
+    if st.session_state.get("_drag_scroll_js_loaded"):
+        return
+    components.html(
+        """
+        <script>
+        (function () {
+          function bind(el) {
+            var isDown = false;
+            var startX = 0;
+            var startLeft = 0;
+            el.addEventListener("pointerdown", function (e) {
+              isDown = true;
+              startX = e.clientX;
+              startLeft = el.scrollLeft;
+              try { el.setPointerCapture(e.pointerId); } catch (err) {}
+            });
+            el.addEventListener("pointermove", function (e) {
+              if (!isDown) return;
+              var dx = e.clientX - startX;
+              el.scrollLeft = startLeft - dx;
+            });
+            function end(e) {
+              isDown = false;
+              try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+            }
+            el.addEventListener("pointerup", end);
+            el.addEventListener("pointercancel", end);
+            el.addEventListener("mouseleave", function () { isDown = false; });
+          }
+          function init() {
+            document.querySelectorAll("[data-drag-scroll]").forEach(bind);
+          }
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", init);
+          } else {
+            init();
+          }
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+    st.session_state["_drag_scroll_js_loaded"] = True
+
+
+def _render_top5_pentagon(rows: list[dict], query_image_path: Path, selected_candidate_id: str | None) -> None:
+    query_uri = _thumb_uri_for_path(str(query_image_path), float(query_image_path.stat().st_mtime), size=(640, 440))
+    if not query_uri:
+        st.info("未找到待比对图片，无法展示 Top5 概览。")
+        return
+
+    slots = ["pentagon-p1", "pentagon-p2", "pentagon-p3", "pentagon-p4", "pentagon-p5"]
+    nodes_html: list[str] = []
+    for idx, row in enumerate(rows[:5], start=1):
+        candidate_id = str(row.get("candidate_id", ""))
+        candidate_path = str(row.get("candidate_path", ""))
+        mtime = 0.0
+        try:
+            mtime = float(Path(candidate_path).stat().st_mtime)
+        except Exception:
+            mtime = 0.0
+        cand_uri = _thumb_uri_for_path(candidate_path, mtime, size=(360, 260)) if candidate_path else None
+        if not cand_uri:
+            continue
+        klass = f"pentagon-card pentagon-node {slots[idx-1]}"
+        if selected_candidate_id and candidate_id == selected_candidate_id:
+            klass += " pentagon-selected"
+        href = f"?view=detail&cid={quote(candidate_id)}"
+        nodes_html.append(
+            f"""
+            <a class="{klass}" href="{href}">
+              <span class="pentagon-badge pentagon-rank">Top{idx}</span>
+              <span class="pentagon-badge pentagon-score">{escape(_fmt_score(row.get("final_score")))}</span>
+              <img class="pentagon-img" src="{cand_uri}" alt="{escape(candidate_id)}" />
+              <div class="pentagon-name">{escape(candidate_id)}</div>
+            </a>
+            """
+        )
+
+    if not nodes_html:
+        st.info("暂无可展示的 Top5 缩略图。")
+        return
+
+    st.markdown(
+        f"""
+        <div class="pentagon-stage">
+          <div class="pentagon-arena">
+            <div class="pentagon-card pentagon-center">
+              <img class="pentagon-img" src="{query_uri}" alt="query" />
+              <div class="pentagon-name">上传比对图片</div>
+            </div>
+            {''.join(nodes_html)}
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_part_row_compact_scroll(part: str, detail: dict) -> None:
+    label = PART_LABELS.get(part, part)
+    fused = _fmt_score(detail.get("fused"))
+    weights = detail.get("weights_used") or {}
+    try:
+        color_a, color_b, gray_a, gray_b, diff = _part_visuals(detail["query_path"], detail["candidate_path"], size=140)
+        tiles = [
+            ("A color", _img_to_data_uri(color_a, max_size=(92, 92), fmt="JPEG")),
+            ("B color", _img_to_data_uri(color_b, max_size=(92, 92), fmt="JPEG")),
+            ("A gray", _img_to_data_uri(gray_a, max_size=(92, 92), fmt="JPEG")),
+            ("B gray", _img_to_data_uri(gray_b, max_size=(92, 92), fmt="JPEG")),
+            ("diff", _img_to_data_uri(diff, max_size=(92, 92), fmt="JPEG")),
+        ]
+    except Exception as exc:
+        st.warning(f"{label} 可视化生成失败: {exc}")
+        return
+
+    tiles_html = "".join(
+        f"""
+        <div class="part-tile">
+          <img src="{uri}" alt="{escape(cap)}" />
+          <div class="part-cap">{escape(cap)}</div>
+        </div>
+        """
+        for cap, uri in tiles
+    )
+    score_html = f"""
+    <div class="part-scorebox">
+      <div class="part-score-top">
+        <div class="part-score-big">{escape(fused)}</div>
+        <div class="part-score-id">{escape(f"part={part}")}</div>
+      </div>
+      <div class="part-score-grid">
+        <div><span>CLIP</span>{escape(_fmt_score(detail.get("clip")))}</div>
+        <div><span>DINO</span>{escape(_fmt_score(detail.get("dino")))}</div>
+        <div><span>SSIM</span>{escape(_fmt_score(detail.get("ssim")))}</div>
+        <div><span>EDGE</span>{escape(_fmt_score(detail.get("edge")))}</div>
+        <div><span>W</span>{escape(f"C{_fmt_weight(weights.get('clip'))} D{_fmt_weight(weights.get('dino'))}")}</div>
+        <div><span>&nbsp;</span>{escape(f"S{_fmt_weight(weights.get('ssim'))} E{_fmt_weight(weights.get('edge'))}")}</div>
+      </div>
+    </div>
+    """
+
+    st.markdown('<div class="report-row">', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="part-title">{escape(label)} <span class="muted">({escape(part)})</span>&nbsp;&nbsp;相似度评分：{escape(fused)}</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"""
+        <div class="part-scroll" data-drag-scroll>
+          <div class="part-grid">
+            {tiles_html}
+            {score_html}
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def _render_detail_view(row: dict, label_dir: Path, query_label: Path | None) -> None:
+    _ensure_drag_scroll_js()
+    candidate_id = str(row.get("candidate_id", ""))
+    fused = _fmt_score(row.get("final_score"))
+
+    actions_l, actions_r = st.columns([1, 1], gap="small")
+    with actions_l:
+        if st.button("返回 Top5", type="secondary"):
+            _clear_query_params()
+            try:
+                st.rerun()
+            except Exception:
+                st.experimental_rerun()
+    with actions_r:
+        st.markdown(
+            f'<div class="detail-pill">Top · {escape(candidate_id)} <span class="detail-pill-score">总分 {escape(fused)}</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    left, right = st.columns([1.15, 0.85], gap="large")
+    with left:
+        c1, c2, c3 = st.columns(3, gap="small")
+        with c1:
+            if query_label:
+                st.image(str(query_label), caption="待比对图片部件标注", use_container_width=True)
+        with c2:
+            cand_label = _find_label(label_dir, candidate_id)
+            if cand_label:
+                st.image(str(cand_label), caption="图库图片部件标注", use_container_width=True)
+        with c3:
+            diff = row.get("contour_diff_image")
+            if diff:
+                st.image(diff, caption="整车轮廓差异图", use_container_width=True)
+
+        m1, m2, m3 = st.columns(3, gap="small")
+        with m1:
+            st.metric("总相似度", fused)
+        with m2:
+            st.metric("轮廓分", _fmt_score(row.get("contour_score")))
+        with m3:
+            st.metric("部件分", _fmt_score(row.get("part_score")))
+
+        st.markdown("**评判分析**")
+        for point in row.get("analysis") or []:
+            st.write(f"- {point}")
+
+    with right:
+        st.markdown("**部件横向对比**")
+        part_scores = row.get("part_scores") or {}
+        for part, detail in part_scores.items():
+            _render_part_row_compact_scroll(part, detail)
+        if not part_scores:
+            st.caption("无可用部件明细。")
+
+
 def _render_result_detail(row: dict, label_dir: Path, query_label: Path | None) -> None:
     st.markdown("**本版比对结果**")
 
@@ -989,7 +1507,7 @@ with gallery_col:
 preview_col, spacer_col = st.columns([1.35, 1], gap="large")
 with preview_col:
     if uploaded is not None:
-        st.image(uploaded, caption="待比对图片", width=260)
+        st.image(uploaded, caption="待比对图片", use_container_width=True)
     else:
         st.markdown('<div class="upload-placeholder">待比对图片信息</div>', unsafe_allow_html=True)
     start = st.button(
@@ -1024,17 +1542,20 @@ if result:
     outputs = result.get("outputs") or {}
 
     _render_run_summary(result, rows)
-
-    st.subheader("排名结果")
     label_dir = Path(outputs.get("front_label", ""))
     query_label = _find_label(label_dir, result.get("query_id", ""))
 
-    st.markdown(
-        f'<div class="rank-list-header">{escape(_rank_header_label())}</div>',
-        unsafe_allow_html=True,
-    )
-    for idx, row in enumerate(rows[: int(topk)], start=1):
-        with st.expander(_rank_expander_label(idx, row), expanded=idx == 1):
-            _render_result_detail(row, label_dir, query_label)
+    qp = _get_query_params()
+    selected_cid = qp.get("cid")
+    rows_by_id = {str(x.get("candidate_id")): x for x in rows}
+
+    if selected_cid and selected_cid in rows_by_id:
+        _render_detail_view(rows_by_id[selected_cid], label_dir, query_label)
+    else:
+        query_path = Path(str(result.get("query", "")))
+        if query_path.is_file():
+            _render_top5_pentagon(rows, query_path, selected_cid)
+        else:
+            st.info("未找到待比对图片，无法展示 Top5 概览。")
 
     st.caption(f"JSON 报告: {reports.get('json')} | Markdown 报告: {reports.get('markdown')}")

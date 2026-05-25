@@ -405,7 +405,10 @@ def _compare_parts(
     query_parts = dataset.get(query_item.item_id, {})
 
     gallery_items = [item for item in items if item.role == "gallery"]
-    worker_count = max_workers or min(8, max(1, (os.cpu_count() or 2) // 2), max(1, len(gallery_items)))
+    if max_workers is not None:
+        worker_count = int(max_workers)
+    else:
+        worker_count = min(8, max(1, (os.cpu_count() or 2) // 2), max(1, len(gallery_items)))
 
     def compare_item(item: ImageItem) -> dict[str, Any]:
         candidate_parts = dataset.get(item.item_id, {})
@@ -566,7 +569,7 @@ def run_pipeline(
     iou: float = 0.7,
     imgsz: int = 640,
     visual_label_edge: bool = False,
-    compare_workers: int | None = None,
+    compare_workers: int | None = 4,
 ) -> dict[str, Any]:
     config = _load_config(weight)
     input_dir_p = _resolve_path(input_dir)
@@ -681,7 +684,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--iou", type=float, default=0.7)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--visual-label-edge", action="store_true")
-    parser.add_argument("--compare-workers", type=int, default=None, help="候选图库相似度计算线程数，默认自动。")
+    parser.add_argument("--compare-workers", type=int, default=4, help="候选图库相似度计算线程数，默认 4。")
     return parser
 
 

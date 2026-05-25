@@ -1,6 +1,12 @@
 services:
   car-similarity-app:
-    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     build:
       args:
         TORCH_VERSION: ${TORCH_VERSION:-2.8.0+cu128}
