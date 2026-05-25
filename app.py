@@ -660,7 +660,7 @@ APP_CSS = """
         position: relative;
         max-width: 980px;
         margin: 0 auto;
-        height: 700px;
+        height: 760px;
         border-radius: 18px;
         background: radial-gradient(560px 420px at 50% 48%, rgba(46, 168, 229, 0.14), transparent 60%);
     }
@@ -674,13 +674,19 @@ APP_CSS = """
         text-decoration: none;
         color: inherit;
     }
+    .pentagon-node {
+        transform: var(--pentagon-pos);
+        transform-origin: center center;
+    }
     .pentagon-selected {
         border-color: rgba(255, 59, 48, 0.85) !important;
         box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.18);
     }
-    .pentagon-card:hover {
-        transform: translateY(-4px) scale(1.01);
+    .pentagon-node:hover {
+        transform: var(--pentagon-pos) scale(1.06);
         border-color: rgba(46, 168, 229, 0.65);
+        box-shadow: 0 18px 42px rgba(46, 168, 229, 0.18);
+        z-index: 12;
     }
     .pentagon-center {
         width: 460px;
@@ -698,28 +704,28 @@ APP_CSS = """
     }
     .pentagon-p1 {
         left: 50%;
-        top: 8%;
-        transform: translate(-50%, -50%);
+        top: 15%;
+        --pentagon-pos: translate(-50%, -50%);
     }
     .pentagon-p2 {
         left: 12%;
         top: 34%;
-        transform: translate(-50%, -50%);
+        --pentagon-pos: translate(-50%, -50%);
     }
     .pentagon-p3 {
         left: 88%;
         top: 34%;
-        transform: translate(-50%, -50%);
+        --pentagon-pos: translate(-50%, -50%);
     }
     .pentagon-p4 {
         left: 30%;
-        top: 97%;
-        transform: translate(-50%, -50%);
+        top: 85%;
+        --pentagon-pos: translate(-50%, -50%);
     }
     .pentagon-p5 {
         left: 70%;
-        top: 97%;
-        transform: translate(-50%, -50%);
+        top: 85%;
+        --pentagon-pos: translate(-50%, -50%);
     }
     .pentagon-img {
         display: block;
@@ -1418,7 +1424,7 @@ def _render_detail_view(row: dict, label_dir: Path, query_label: Path | None) ->
     with actions_l:
         if st.button("返回 Top5", type="secondary"):
             st.session_state.pop("selected_candidate_id", None)
-            _clear_query_params()
+            _set_query_params(view="top5")
             try:
                 st.rerun()
             except Exception:
@@ -1538,60 +1544,70 @@ skip_cutout = False
 selected_parts = DEFAULT_PARTS
 gallery_count = _count_gallery(gallery_dir)
 
-label_col, tools_col = st.columns([1.35, 1], gap="large")
-with label_col:
-    st.markdown('<div class="field-label">上传待比对图片</div>', unsafe_allow_html=True)
-with tools_col:
-    st.markdown('<div class="field-label">&nbsp;</div>', unsafe_allow_html=True)
-
-upload_col, gallery_col = st.columns([1.35, 1], gap="large")
-with upload_col:
-    uploaded = st.file_uploader(
-        "上传待比对图片",
-        type=["jpg", "jpeg", "png", "webp", "bmp"],
-        label_visibility="collapsed",
-    )
-with gallery_col:
-    _render_gallery_preview(gallery_dir, gallery_count)
-
-preview_col, spacer_col = st.columns([1.35, 1], gap="large")
-with preview_col:
-    if uploaded is not None:
-        st.image(uploaded, caption="待比对图片", use_container_width=True)
-    else:
-        st.markdown('<div class="upload-placeholder">待比对图片信息</div>', unsafe_allow_html=True)
-    start = st.button(
-        "开始比对",
-        type="primary",
-        use_container_width=True,
-        disabled=uploaded is None or gallery_count <= 0,
-    )
-with spacer_col:
-    st.empty()
-
-if start and uploaded is not None:
-    st.session_state.pop("selected_candidate_id", None)
-    query_path = _save_upload(uploaded, upload_root)
-    with st.spinner("正在执行相似度计算，请稍候..."):
-        result = run_pipeline(
-            input_dir=gallery_dir,
-            query_image=query_path,
-            output_dir=output_dir,
-            parts=selected_parts,
-            ignore_parts=[],
-            features=",".join(features),
-            topk=int(topk),
-            device=None if device_choice == "auto" else device_choice,
-            skip_cutout=bool(skip_cutout),
-        )
-    st.session_state["last_result"] = result
-    _clear_query_params()
-
 qp = _get_query_params()
-if st.session_state.get("last_result") is None and qp.get("cid"):
+if qp.get("view") == "top5":
+    st.session_state.pop("selected_candidate_id", None)
+if st.session_state.get("last_result") is None and (qp.get("cid") or qp.get("view") == "top5"):
     restored = _load_latest_result(output_dir)
     if restored:
         st.session_state["last_result"] = restored
+
+result = st.session_state.get("last_result")
+rows_for_mode = (result or {}).get("results") or []
+selected_cid_for_mode = None if qp.get("view") == "top5" else (qp.get("cid") or st.session_state.get("selected_candidate_id"))
+rows_by_id_for_mode = {str(x.get("candidate_id")): x for x in rows_for_mode}
+detail_mode = bool(selected_cid_for_mode and selected_cid_for_mode in rows_by_id_for_mode)
+
+if not detail_mode:
+    label_col, tools_col = st.columns([1.35, 1], gap="large")
+    with label_col:
+        st.markdown('<div class="field-label">上传待比对图片</div>', unsafe_allow_html=True)
+    with tools_col:
+        st.markdown('<div class="field-label">&nbsp;</div>', unsafe_allow_html=True)
+
+    upload_col, gallery_col = st.columns([1.35, 1], gap="large")
+    with upload_col:
+        uploaded = st.file_uploader(
+            "上传待比对图片",
+            type=["jpg", "jpeg", "png", "webp", "bmp"],
+            label_visibility="collapsed",
+        )
+    with gallery_col:
+        _render_gallery_preview(gallery_dir, gallery_count)
+
+    preview_col, spacer_col = st.columns([1.35, 1], gap="large")
+    with preview_col:
+        if uploaded is not None:
+            st.image(uploaded, caption="待比对图片", use_container_width=True)
+        else:
+            st.markdown('<div class="upload-placeholder">待比对图片信息</div>', unsafe_allow_html=True)
+        start = st.button(
+            "开始比对",
+            type="primary",
+            use_container_width=True,
+            disabled=uploaded is None or gallery_count <= 0,
+        )
+    with spacer_col:
+        st.empty()
+
+    if start and uploaded is not None:
+        st.session_state.pop("selected_candidate_id", None)
+        query_path = _save_upload(uploaded, upload_root)
+        with st.spinner("正在执行相似度计算，请稍候..."):
+            result = run_pipeline(
+                input_dir=gallery_dir,
+                query_image=query_path,
+                output_dir=output_dir,
+                parts=selected_parts,
+                ignore_parts=[],
+                features=",".join(features),
+                topk=int(topk),
+                device=None if device_choice == "auto" else device_choice,
+                skip_cutout=bool(skip_cutout),
+            )
+        st.session_state["last_result"] = result
+        _clear_query_params()
+        qp = _get_query_params()
 
 result = st.session_state.get("last_result")
 if result:
@@ -1603,7 +1619,7 @@ if result:
     label_dir = Path(outputs.get("front_label", ""))
     query_label = _find_label(label_dir, result.get("query_id", ""))
 
-    selected_cid = qp.get("cid") or st.session_state.get("selected_candidate_id")
+    selected_cid = None if qp.get("view") == "top5" else (qp.get("cid") or st.session_state.get("selected_candidate_id"))
     rows_by_id = {str(x.get("candidate_id")): x for x in rows}
 
     if selected_cid and selected_cid in rows_by_id:
