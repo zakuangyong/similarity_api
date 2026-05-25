@@ -41,6 +41,36 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 The GPU mode requires NVIDIA Driver and NVIDIA Container Toolkit on the server.
 
+If container startup reports `failed to discover GPU vendor from CDI`, first verify the
+host GPU runtime:
+
+```bash
+nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+If the Docker test fails, install or reconfigure NVIDIA Container Toolkit:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
+
+Then start again:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+```
+
+To start without GPU while fixing the runtime:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml down
+docker compose up -d
+```
+
 ## Build mirrors
 
 The Docker build defaults to Aliyun mirrors:
