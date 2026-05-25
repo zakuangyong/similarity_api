@@ -4,9 +4,11 @@ ARG DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
 ARG DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
 ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
 ARG PIP_TRUSTED_HOST=mirrors.aliyun.com
-ARG TORCH_VERSION=2.8.0+cu128
-ARG TORCHVISION_VERSION=0.23.0+cu128
-ARG TORCH_INDEX_URL=https://mirrors.aliyun.com/pytorch-wheels/cu128
+ARG TORCH_VERSION=2.8.0
+ARG TORCHVISION_VERSION=0.23.0
+ARG TORCH_INDEX_URL=https://mirrors.aliyun.com/pytorch-wheels/cpu
+ARG EXPECT_CUDA_VERSION=
+ARG CONSTRAINTS_FILE=constraints-cpu.txt
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -31,7 +33,7 @@ RUN set -eux; \
         libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt constraints-cu128.txt ./
+COPY requirements.txt constraints-cu128.txt constraints-cpu.txt ./
 RUN python -m pip config set global.index-url "${PIP_INDEX_URL}" \
     && python -m pip config set global.trusted-host "${PIP_TRUSTED_HOST}" \
     && python -m pip config set global.timeout "120" \
@@ -46,14 +48,34 @@ RUN pip install \
         --index-url "${PIP_INDEX_URL}" \
         --find-links "${TORCH_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
-    && python -c "import torch; print('build torch cuda:', torch.version.cuda); assert torch.version.cuda == '12.8', torch.version.cuda"
+    && EXPECT_CUDA_VERSION="${EXPECT_CUDA_VERSION}" python - <<'PY'
+import os
+import torch
+
+exp = os.environ.get("EXPECT_CUDA_VERSION", "").strip()
+print("build torch cuda:", torch.version.cuda)
+if exp:
+    assert torch.version.cuda == exp, torch.version.cuda
+else:
+    assert torch.version.cuda is None, torch.version.cuda
+PY
 
 RUN pip install -r requirements.txt \
-        -c constraints-cu128.txt \
+        -c "${CONSTRAINTS_FILE}" \
         --index-url "${PIP_INDEX_URL}" \
         --find-links "${TORCH_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
-    && python -c "import torch; print('final torch cuda:', torch.version.cuda); assert torch.version.cuda == '12.8', torch.version.cuda" \
+    && EXPECT_CUDA_VERSION="${EXPECT_CUDA_VERSION}" python - <<'PY'
+import os
+import torch
+
+exp = os.environ.get("EXPECT_CUDA_VERSION", "").strip()
+print("final torch cuda:", torch.version.cuda)
+if exp:
+    assert torch.version.cuda == exp, torch.version.cuda
+else:
+    assert torch.version.cuda is None, torch.version.cuda
+PY \
     && python -m pip check
 
 COPY app.py similarity_pipeline.py ./

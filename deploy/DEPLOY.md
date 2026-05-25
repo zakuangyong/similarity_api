@@ -53,7 +53,15 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 The GPU mode requires NVIDIA Driver and NVIDIA Container Toolkit on the server.
 
-The default Docker image pins PyTorch to CUDA 12.8 wheels:
+The CPU-only mode (default) pins PyTorch to CPU wheels:
+
+```text
+torch==2.8.0
+torchvision==0.23.0
+TORCH_INDEX_URL=https://mirrors.aliyun.com/pytorch-wheels/cpu
+```
+
+The GPU mode pins PyTorch to CUDA 12.8 wheels:
 
 ```text
 torch==2.8.0+cu128

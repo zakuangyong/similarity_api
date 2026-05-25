@@ -59,6 +59,11 @@ APP_CSS = """
         background: var(--app-bg) !important;
         color: var(--text) !important;
     }
+    [data-testid="stMainBlockContainer"] {
+        max-width: 1280px !important;
+        padding-top: 18px !important;
+        padding-bottom: 36px !important;
+    }
     [data-testid="stHeader"], [data-testid="stToolbar"] {
         background: rgba(7, 9, 12, 0.92) !important;
     }
@@ -87,6 +92,9 @@ APP_CSS = """
         color: #e8f1ff !important;
         opacity: 1 !important;
         font-weight: 700 !important;
+    }
+    .field-label {
+        margin: 0 0 6px;
     }
     h1, h2, h3, h4, h5, h6, p, label, span {
         color: var(--text);
@@ -691,33 +699,33 @@ def _gallery_preview_items(gallery_dir: str, limit: int = 12) -> list[tuple[str,
 
 def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
     items = _gallery_preview_items(str(gallery_dir), limit=12)
-    if not items:
-        st.info(f"当前图库图片数量: {gallery_count}（暂无可预览图片）")
-        return
-
-    thumbs = "\n".join(
-        f"""
-        <div class="gallery-thumb">
-            <img src="{uri}" alt="{escape(name)}" />
-            <div class="gallery-thumb-name">{escape(name)}</div>
-        </div>
-        """
-        for name, uri in items
-    )
-    st.markdown(
-        f"""
-        <div class="gallery-preview">
-            <div class="gallery-preview-head">
-                <div class="gallery-count">图库数量: {gallery_count}</div>
-                <div class="gallery-title">图库预览</div>
+    head_l, head_r = st.columns([1, 1], gap="small")
+    with head_l:
+        st.markdown(
+            f"""
+            <div class="gallery-preview" style="margin: 0;">
+                <div class="gallery-preview-head">
+                    <div class="gallery-count">图库数量: {gallery_count}</div>
+                </div>
             </div>
-            <div class="muted" style="margin-top: 4px;">{escape(str(gallery_dir))}</div>
-            <div style="height: 10px;"></div>
-            <div class="gallery-grid">{thumbs}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
+    with head_r:
+        with st.popover("图库预览"):
+            if not items:
+                st.caption("暂无可预览图片")
+            else:
+                thumbs = "\n".join(
+                    f"""
+                    <div class="gallery-thumb">
+                        <img src="{uri}" alt="{escape(name)}" />
+                        <div class="gallery-thumb-name">{escape(name)}</div>
+                    </div>
+                    """
+                    for name, uri in items
+                )
+                st.markdown(f'<div class="gallery-grid">{thumbs}</div>', unsafe_allow_html=True)
 
 
 def _save_upload(file, upload_root: Path) -> Path:
@@ -950,8 +958,6 @@ st.set_page_config(page_title="汽车图片相似度比对", layout="wide", init
 st.markdown(APP_CSS, unsafe_allow_html=True)
 st.title("汽车图片相似度比对")
 st.caption("上传单张待比对图片，系统会依次与图片库中的每张图片完成相似度比对。")
-with st.expander("方法说明", expanded=False):
-    _render_cdse_info()
 
 gallery_dir = DEFAULT_GALLERY_DIR
 upload_root = DEFAULT_UPLOAD_ROOT
@@ -964,9 +970,24 @@ skip_cutout = False
 selected_parts = DEFAULT_PARTS
 gallery_count = _count_gallery(gallery_dir)
 
+label_col, tools_col = st.columns([1.35, 1], gap="large")
+with label_col:
+    st.markdown('<div class="field-label">上传待比对图片</div>', unsafe_allow_html=True)
+with tools_col:
+    st.markdown('<div class="field-label">&nbsp;</div>', unsafe_allow_html=True)
+
 upload_col, gallery_col = st.columns([1.35, 1], gap="large")
 with upload_col:
-    uploaded = st.file_uploader("上传待比对图片", type=["jpg", "jpeg", "png", "webp", "bmp"])
+    uploaded = st.file_uploader(
+        "上传待比对图片",
+        type=["jpg", "jpeg", "png", "webp", "bmp"],
+        label_visibility="collapsed",
+    )
+with gallery_col:
+    _render_gallery_preview(gallery_dir, gallery_count)
+
+preview_col, spacer_col = st.columns([1.35, 1], gap="large")
+with preview_col:
     if uploaded is not None:
         st.image(uploaded, caption="待比对图片", width=260)
     else:
@@ -977,9 +998,8 @@ with upload_col:
         use_container_width=True,
         disabled=uploaded is None or gallery_count <= 0,
     )
-
-with gallery_col:
-    _render_gallery_preview(gallery_dir, gallery_count)
+with spacer_col:
+    st.empty()
 
 if start and uploaded is not None:
     query_path = _save_upload(uploaded, upload_root)

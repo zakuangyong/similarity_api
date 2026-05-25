@@ -1,6 +1,13 @@
 services:
   car-similarity-app:
     runtime: nvidia
+    build:
+      args:
+        TORCH_VERSION: ${TORCH_VERSION:-2.8.0+cu128}
+        TORCHVISION_VERSION: ${TORCHVISION_VERSION:-0.23.0+cu128}
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://mirrors.aliyun.com/pytorch-wheels/cu128}
+        EXPECT_CUDA_VERSION: ${EXPECT_CUDA_VERSION:-12.8}
+        CONSTRAINTS_FILE: ${CONSTRAINTS_FILE:-constraints-cu128.txt}
     environment:
       NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
