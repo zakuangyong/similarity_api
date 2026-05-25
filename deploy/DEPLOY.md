@@ -27,13 +27,25 @@ img/front/
 
 ## Start
 
-CPU/default:
+Direct Streamlit mode, recommended if the Nginx reverse proxy blocks WebSocket:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.direct.yml up -d --build
+```
+
+Direct Streamlit mode with GPU:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.direct.yml up -d --build
+```
+
+Nginx reverse proxy mode:
 
 ```bash
 docker compose up -d --build
 ```
 
-GPU:
+Nginx reverse proxy mode with GPU:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
@@ -69,6 +81,21 @@ To start without GPU while fixing the runtime:
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml down
 docker compose up -d
+```
+
+If the browser stays on the Streamlit skeleton page and DevTools reports
+`WebSocket connection to ... /_stcore/stream failed`, switch to direct mode:
+
+```bash
+docker compose down
+docker compose -f docker-compose.yml -f docker-compose.direct.yml up -d
+```
+
+For GPU direct mode:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml down
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.direct.yml up -d
 ```
 
 ## Build mirrors
