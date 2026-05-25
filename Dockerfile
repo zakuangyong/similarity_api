@@ -39,15 +39,21 @@ RUN python -m pip config set global.index-url "${PIP_INDEX_URL}" \
     && python -m pip install --upgrade pip setuptools wheel \
         --index-url "${PIP_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
-    && pip install \
+    && pip install -r requirements.txt \
+        --index-url "${PIP_INDEX_URL}" \
+        --trusted-host "${PIP_TRUSTED_HOST}"
+
+RUN pip uninstall -y torch torchvision torchaudio || true
+
+RUN pip install --force-reinstall \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
         --index-url "${TORCH_INDEX_URL}" \
         --extra-index-url "${PIP_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
-    && pip install -r requirements.txt \
-        --index-url "${PIP_INDEX_URL}" \
-        --trusted-host "${PIP_TRUSTED_HOST}"
+    && python -c "import torch; print('build torch cuda:', torch.version.cuda); assert torch.version.cuda == '12.8', torch.version.cuda"
+
+RUN python -m pip check
 
 COPY app.py similarity_pipeline.py ./
 COPY configs ./configs
