@@ -4,15 +4,17 @@ ARG DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
 ARG DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
 ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
 ARG PIP_TRUSTED_HOST=mirrors.aliyun.com
-ARG TORCH_VERSION=2.8.0
-ARG TORCHVISION_VERSION=0.23.0
-ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
+ARG TORCH_VERSION=2.8.0+cu128
+ARG TORCHVISION_VERSION=0.23.0+cu128
+ARG TORCH_INDEX_URL=https://mirrors.aliyun.com/pytorch-wheels/cu128
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_INDEX_URL=${PIP_INDEX_URL} \
     PIP_TRUSTED_HOST=${PIP_TRUSTED_HOST} \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=10 \
     STREAMLIT_SERVER_HEADLESS=true
 
 WORKDIR /app
@@ -30,12 +32,22 @@ RUN set -eux; \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN python -m pip install --upgrade pip setuptools wheel \
+RUN python -m pip config set global.index-url "${PIP_INDEX_URL}" \
+    && python -m pip config set global.trusted-host "${PIP_TRUSTED_HOST}" \
+    && python -m pip config set global.timeout "120" \
+    && python -m pip config set global.retries "10" \
+    && python -m pip install --upgrade pip setuptools wheel \
+        --index-url "${PIP_INDEX_URL}" \
+        --trusted-host "${PIP_TRUSTED_HOST}" \
     && pip install \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
         --index-url "${TORCH_INDEX_URL}" \
-    && pip install -r requirements.txt
+        --extra-index-url "${PIP_INDEX_URL}" \
+        --trusted-host "${PIP_TRUSTED_HOST}" \
+    && pip install -r requirements.txt \
+        --index-url "${PIP_INDEX_URL}" \
+        --trusted-host "${PIP_TRUSTED_HOST}"
 
 COPY app.py similarity_pipeline.py ./
 COPY configs ./configs

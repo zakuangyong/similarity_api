@@ -7,9 +7,9 @@ services:
         DEBIAN_SECURITY_MIRROR: ${DEBIAN_SECURITY_MIRROR:-http://mirrors.aliyun.com/debian-security}
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple}
         PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-mirrors.aliyun.com}
-        TORCH_VERSION: ${TORCH_VERSION:-2.8.0}
-        TORCHVISION_VERSION: ${TORCHVISION_VERSION:-0.23.0}
-        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu128}
+        TORCH_VERSION: ${TORCH_VERSION:-2.8.0+cu128}
+        TORCHVISION_VERSION: ${TORCHVISION_VERSION:-0.23.0+cu128}
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://mirrors.aliyun.com/pytorch-wheels/cu128}
     image: car-similarity-app:latest
     container_name: car-similarity-app
     restart: unless-stopped

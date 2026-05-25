@@ -56,9 +56,9 @@ The GPU mode requires NVIDIA Driver and NVIDIA Container Toolkit on the server.
 The default Docker image pins PyTorch to CUDA 12.8 wheels:
 
 ```text
-torch==2.8.0
-torchvision==0.23.0
-TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
+torch==2.8.0+cu128
+torchvision==0.23.0+cu128
+TORCH_INDEX_URL=https://mirrors.aliyun.com/pytorch-wheels/cu128
 ```
 
 This matches hosts where `nvidia-smi` reports `CUDA Version: 12.8`, such as
