@@ -53,6 +53,25 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 The GPU mode requires NVIDIA Driver and NVIDIA Container Toolkit on the server.
 
+The default Docker image pins PyTorch to CUDA 12.8 wheels:
+
+```text
+torch==2.8.0
+torchvision==0.23.0
+TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
+```
+
+This matches hosts where `nvidia-smi` reports `CUDA Version: 12.8`, such as
+NVIDIA driver `570.x`. If PyTorch reports `torch.version.cuda: 13.0` and
+`torch.cuda.is_available(): False`, rebuild the image after pulling the latest
+project files:
+
+```bash
+docker compose down
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.direct.yml build --no-cache car-similarity-app
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.direct.yml up -d
+```
+
 If container startup reports `failed to discover GPU vendor from CDI`, first verify the
 host GPU runtime:
 

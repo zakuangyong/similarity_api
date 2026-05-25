@@ -4,6 +4,9 @@ ARG DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
 ARG DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
 ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
 ARG PIP_TRUSTED_HOST=mirrors.aliyun.com
+ARG TORCH_VERSION=2.8.0
+ARG TORCHVISION_VERSION=0.23.0
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -28,6 +31,10 @@ RUN set -eux; \
 
 COPY requirements.txt .
 RUN python -m pip install --upgrade pip setuptools wheel \
+    && pip install \
+        "torch==${TORCH_VERSION}" \
+        "torchvision==${TORCHVISION_VERSION}" \
+        --index-url "${TORCH_INDEX_URL}" \
     && pip install -r requirements.txt
 
 COPY app.py similarity_pipeline.py ./
