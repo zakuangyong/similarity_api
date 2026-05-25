@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime as dt
 import json
 import math
+import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -378,6 +380,7 @@ def _compare_parts(
     ignored_parts: list[str],
     features: list[FeatureName],
     device: str | None,
+    max_workers: int | None = None,
 ) -> list[dict[str, Any]]:
     active_parts = [p for p in parts if p not in set(ignored_parts)]
     dataset = load_dataset(str(cutout_dir), active_parts)
@@ -401,9 +404,10 @@ def _compare_parts(
     results: list[dict[str, Any]] = []
     query_parts = dataset.get(query_item.item_id, {})
 
-    for item in items:
-        if item.role != "gallery":
-            continue
+    gallery_items = [item for item in items if item.role == "gallery"]
+    worker_count = max_workers or min(8, max(1, (os.cpu_count() or 2) // 2), max(1, len(gallery_items)))
+
+    def compare_item(item: ImageItem) -> dict[str, Any]:
         candidate_parts = dataset.get(item.item_id, {})
         per_part: dict[str, Any] = {}
         part_fused: dict[str, float] = {}
@@ -463,7 +467,15 @@ def _compare_parts(
             "contour_diff_image": contour_obj.get("diff_image"),
         }
         row["analysis"] = _analysis_for_item(row)
-        results.append(row)
+        return row
+
+    if worker_count <= 1 or len(gallery_items) <= 1:
+        results = [compare_item(item) for item in gallery_items]
+    else:
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            future_map = {executor.submit(compare_item, item): item for item in gallery_items}
+            for future in as_completed(future_map):
+                results.append(future.result())
 
     return sorted(results, key=lambda x: float(x["final_score"]), reverse=True)
 
@@ -554,6 +566,7 @@ def run_pipeline(
     iou: float = 0.7,
     imgsz: int = 640,
     visual_label_edge: bool = False,
+    compare_workers: int | None = None,
 ) -> dict[str, Any]:
     config = _load_config(weight)
     input_dir_p = _resolve_path(input_dir)
@@ -616,6 +629,7 @@ def run_pipeline(
         ignored_parts=ignored,
         features=feature_names,
         device=device,
+        max_workers=compare_workers,
     )
     if topk and topk > 0:
         results = results[: int(topk)]
@@ -667,6 +681,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--iou", type=float, default=0.7)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--visual-label-edge", action="store_true")
+    parser.add_argument("--compare-workers", type=int, default=None, help="候选图库相似度计算线程数，默认自动。")
     return parser
 
 
@@ -695,6 +710,7 @@ def main(argv: list[str] | None = None) -> int:
         iou=float(args.iou),
         imgsz=int(args.imgsz),
         visual_label_edge=bool(args.visual_label_edge),
+        compare_workers=args.compare_workers,
     )
     print(json.dumps({"run_id": result["run_id"], "reports": result["reports"], "top": result["results"][:3]}, ensure_ascii=False, indent=2))
     return 0
