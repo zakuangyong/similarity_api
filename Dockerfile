@@ -48,34 +48,14 @@ RUN pip install \
         --index-url "${PIP_INDEX_URL}" \
         --find-links "${TORCH_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
-    && EXPECT_CUDA_VERSION="${EXPECT_CUDA_VERSION}" python - <<'PY'
-import os
-import torch
-
-exp = os.environ.get("EXPECT_CUDA_VERSION", "").strip()
-print("build torch cuda:", torch.version.cuda)
-if exp:
-    assert torch.version.cuda == exp, torch.version.cuda
-else:
-    assert torch.version.cuda is None, torch.version.cuda
-PY
+    && EXPECT_CUDA_VERSION="${EXPECT_CUDA_VERSION}" python -c "import os, torch; exp=os.environ.get('EXPECT_CUDA_VERSION','').strip(); print('build torch cuda:', torch.version.cuda); assert (torch.version.cuda == exp) if exp else (torch.version.cuda is None), torch.version.cuda"
 
 RUN pip install -r requirements.txt \
         -c "${CONSTRAINTS_FILE}" \
         --index-url "${PIP_INDEX_URL}" \
         --find-links "${TORCH_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}" \
-    && EXPECT_CUDA_VERSION="${EXPECT_CUDA_VERSION}" python - <<'PY'
-import os
-import torch
-
-exp = os.environ.get("EXPECT_CUDA_VERSION", "").strip()
-print("final torch cuda:", torch.version.cuda)
-if exp:
-    assert torch.version.cuda == exp, torch.version.cuda
-else:
-    assert torch.version.cuda is None, torch.version.cuda
-PY
+    && EXPECT_CUDA_VERSION="${EXPECT_CUDA_VERSION}" python -c "import os, torch; exp=os.environ.get('EXPECT_CUDA_VERSION','').strip(); print('final torch cuda:', torch.version.cuda); assert (torch.version.cuda == exp) if exp else (torch.version.cuda is None), torch.version.cuda" \
     && python -m pip check
 
 COPY app.py similarity_pipeline.py ./
