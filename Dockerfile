@@ -31,21 +31,16 @@ RUN set -eux; \
         libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements.txt constraints-cu128.txt ./
 RUN python -m pip config set global.index-url "${PIP_INDEX_URL}" \
     && python -m pip config set global.trusted-host "${PIP_TRUSTED_HOST}" \
     && python -m pip config set global.timeout "120" \
     && python -m pip config set global.retries "10" \
     && python -m pip install --upgrade pip setuptools wheel \
         --index-url "${PIP_INDEX_URL}" \
-        --trusted-host "${PIP_TRUSTED_HOST}" \
-    && pip install -r requirements.txt \
-        --index-url "${PIP_INDEX_URL}" \
         --trusted-host "${PIP_TRUSTED_HOST}"
 
-RUN pip uninstall -y torch torchvision torchaudio || true
-
-RUN pip install --force-reinstall \
+RUN pip install \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
         --index-url "${TORCH_INDEX_URL}" \
@@ -53,7 +48,13 @@ RUN pip install --force-reinstall \
         --trusted-host "${PIP_TRUSTED_HOST}" \
     && python -c "import torch; print('build torch cuda:', torch.version.cuda); assert torch.version.cuda == '12.8', torch.version.cuda"
 
-RUN python -m pip check
+RUN pip install -r requirements.txt \
+        -c constraints-cu128.txt \
+        --index-url "${PIP_INDEX_URL}" \
+        --extra-index-url "${TORCH_INDEX_URL}" \
+        --trusted-host "${PIP_TRUSTED_HOST}" \
+    && python -c "import torch; print('final torch cuda:', torch.version.cuda); assert torch.version.cuda == '12.8', torch.version.cuda" \
+    && python -m pip check
 
 COPY app.py similarity_pipeline.py ./
 COPY configs ./configs
