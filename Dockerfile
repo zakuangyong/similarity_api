@@ -75,7 +75,7 @@ if exp:
     assert torch.version.cuda == exp, torch.version.cuda
 else:
     assert torch.version.cuda is None, torch.version.cuda
-PY \
+PY
     && python -m pip check
 
 COPY app.py similarity_pipeline.py ./
