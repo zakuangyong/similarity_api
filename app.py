@@ -515,6 +515,14 @@ APP_CSS = """
         font-size: 14px;
         font-weight: 800;
     }
+    .gallery-preview-panel {
+        background: #0c1117;
+        border: 1px dashed #303946;
+        border-radius: 8px;
+        min-height: 360px;
+        margin-top: 14px;
+        padding: 12px;
+    }
     .gallery-title {
         color: #7fd0ff;
         font-size: 14px;
@@ -660,7 +668,7 @@ APP_CSS = """
         position: relative;
         max-width: 980px;
         margin: 0 auto;
-        height: 760px;
+        height: 860px;
         border-radius: 18px;
         background: radial-gradient(560px 420px at 50% 48%, rgba(46, 168, 229, 0.14), transparent 60%);
     }
@@ -719,12 +727,12 @@ APP_CSS = """
     }
     .pentagon-p4 {
         left: 30%;
-        top: 85%;
+        top: 88%;
         --pentagon-pos: translate(-50%, -50%);
     }
     .pentagon-p5 {
         left: 70%;
-        top: 85%;
+        top: 88%;
         --pentagon-pos: translate(-50%, -50%);
     }
     .pentagon-img {
@@ -934,19 +942,19 @@ def _gallery_image_paths(gallery_dir: Path, limit: int = 12) -> list[Path]:
 
 def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
     preview_paths = _gallery_image_paths(gallery_dir, limit=12)
-    head_l, head_r = st.columns([1.25, 0.75], gap="small")
-    with head_l:
-        st.markdown(
-            f"""
-            <div class="gallery-preview" style="margin: 0;">
-                <div class="gallery-preview-head">
-                    <div class="gallery-count">图库数量: {gallery_count}</div>
-                </div>
+    st.markdown(
+        f"""
+        <div class="gallery-preview" style="margin: 0;">
+            <div class="gallery-preview-head">
+                <div class="gallery-count">图库数量: {gallery_count}</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with head_r:
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="gallery-preview-panel">', unsafe_allow_html=True)
+    pop_l, pop_r = st.columns([1, 2], gap="small")
+    with pop_l:
         with st.popover("图库预览"):
             if not preview_paths:
                 st.caption("暂无可预览图片")
@@ -957,6 +965,9 @@ def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
                     for col, path in zip(cols, batch):
                         with col:
                             st.image(str(path), caption=path.name, width=120)
+    with pop_r:
+        st.caption("点击左侧按钮查看图库图片")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _save_upload(file, upload_root: Path) -> Path:
