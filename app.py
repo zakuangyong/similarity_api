@@ -515,14 +515,6 @@ APP_CSS = """
         font-size: 14px;
         font-weight: 800;
     }
-    .gallery-preview-panel {
-        background: #0c1117;
-        border: 1px dashed #303946;
-        border-radius: 8px;
-        min-height: 360px;
-        margin-top: 14px;
-        padding: 12px;
-    }
     .gallery-title {
         color: #7fd0ff;
         font-size: 14px;
@@ -653,8 +645,11 @@ APP_CSS = """
         font-size: 14px;
         font-weight: 700;
         justify-content: center;
-        min-height: 260px;
-        margin-top: 10px;
+        min-height: 235px;
+        margin-top: 0;
+    }
+    .upload-preview-tight {
+        margin-top: -8px;
     }
     .pentagon-stage {
         border: 1px solid var(--line);
@@ -942,19 +937,19 @@ def _gallery_image_paths(gallery_dir: Path, limit: int = 12) -> list[Path]:
 
 def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
     preview_paths = _gallery_image_paths(gallery_dir, limit=12)
-    st.markdown(
-        f"""
-        <div class="gallery-preview" style="margin: 0;">
-            <div class="gallery-preview-head">
-                <div class="gallery-count">图库数量: {gallery_count}</div>
+    head_l, head_r = st.columns([1.25, 0.75], gap="small")
+    with head_l:
+        st.markdown(
+            f"""
+            <div class="gallery-preview" style="margin: 0;">
+                <div class="gallery-preview-head">
+                    <div class="gallery-count">图库数量: {gallery_count}</div>
+                </div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown('<div class="gallery-preview-panel">', unsafe_allow_html=True)
-    pop_l, pop_r = st.columns([1, 2], gap="small")
-    with pop_l:
+            """,
+            unsafe_allow_html=True,
+        )
+    with head_r:
         with st.popover("图库预览"):
             if not preview_paths:
                 st.caption("暂无可预览图片")
@@ -965,9 +960,12 @@ def _render_gallery_preview(gallery_dir: Path, gallery_count: int) -> None:
                     for col, path in zip(cols, batch):
                         with col:
                             st.image(str(path), caption=path.name, width=120)
-    with pop_r:
-        st.caption("点击左侧按钮查看图库图片")
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.selectbox(
+        "车型选择",
+        ["SUV", "轿车", "轿跑", "越野", "MPV", "皮卡"],
+        index=0,
+        key="vehicle_type_demo",
+    )
 
 
 def _save_upload(file, upload_root: Path) -> Path:
@@ -1446,8 +1444,9 @@ def _render_detail_view(row: dict, label_dir: Path, query_label: Path | None) ->
             unsafe_allow_html=True,
         )
 
-    left, right = st.columns([1.15, 0.85], gap="large")
-    with left:
+    detail_shell, _ = st.columns([0.92, 0.08], gap="small")
+    with detail_shell:
+        st.markdown("**本次候选详情**")
         c1, c2, c3 = st.columns(3, gap="small")
         with c1:
             if query_label:
@@ -1465,15 +1464,16 @@ def _render_detail_view(row: dict, label_dir: Path, query_label: Path | None) ->
         with m1:
             st.metric("总相似度", fused)
         with m2:
-            st.metric("轮廓分", _fmt_score(row.get("contour_score")))
+            st.metric("轮廓分（40%）", _fmt_score(row.get("contour_score")))
         with m3:
-            st.metric("部件分", _fmt_score(row.get("part_score")))
+            st.metric("部件分（60%）", _fmt_score(row.get("part_score")))
 
         st.markdown("**评判分析**")
         for point in row.get("analysis") or []:
             st.write(f"- {point}")
 
-    with right:
+    parts_shell, _ = st.columns([0.92, 0.08], gap="small")
+    with parts_shell:
         st.markdown("**部件横向对比**")
         part_scores = row.get("part_scores") or {}
         for part, detail in part_scores.items():
@@ -1588,10 +1588,12 @@ if not detail_mode:
 
     preview_col, spacer_col = st.columns([1.35, 1], gap="large")
     with preview_col:
+        st.markdown('<div class="upload-preview-tight">', unsafe_allow_html=True)
         if uploaded is not None:
             st.image(uploaded, caption="待比对图片", use_container_width=True)
         else:
             st.markdown('<div class="upload-placeholder">待比对图片信息</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         start = st.button(
             "开始比对",
             type="primary",
@@ -1646,4 +1648,3 @@ if result:
         else:
             st.info("未找到待比对图片，无法展示 Top5 概览。")
 
-    st.caption(f"JSON 报告: {reports.get('json')} | Markdown 报告: {reports.get('markdown')}")
