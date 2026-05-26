@@ -645,8 +645,8 @@ APP_CSS = """
         font-size: 14px;
         font-weight: 700;
         justify-content: center;
-        min-height: 235px;
-        margin-top: 0;
+        min-height: 220px;
+        margin-top: -24px;
     }
     .upload-preview-tight {
         margin-top: -8px;
@@ -1444,9 +1444,18 @@ def _render_detail_view(row: dict, label_dir: Path, query_label: Path | None) ->
             unsafe_allow_html=True,
         )
 
+    parts_shell, _ = st.columns([0.92, 0.08], gap="small")
+    with parts_shell:
+        st.markdown("**部件横向对比**")
+        part_scores = row.get("part_scores") or {}
+        for part, detail in part_scores.items():
+            _render_part_row_compact_scroll(part, detail)
+        if not part_scores:
+            st.caption("无可用部件明细。")
+
     detail_shell, _ = st.columns([0.92, 0.08], gap="small")
     with detail_shell:
-        st.markdown("**本次候选详情**")
+        st.markdown("**整车对比分析**")
         c1, c2, c3 = st.columns(3, gap="small")
         with c1:
             if query_label:
@@ -1471,15 +1480,6 @@ def _render_detail_view(row: dict, label_dir: Path, query_label: Path | None) ->
         st.markdown("**评判分析**")
         for point in row.get("analysis") or []:
             st.write(f"- {point}")
-
-    parts_shell, _ = st.columns([0.92, 0.08], gap="small")
-    with parts_shell:
-        st.markdown("**部件横向对比**")
-        part_scores = row.get("part_scores") or {}
-        for part, detail in part_scores.items():
-            _render_part_row_compact_scroll(part, detail)
-        if not part_scores:
-            st.caption("无可用部件明细。")
 
 
 def _render_result_detail(row: dict, label_dir: Path, query_label: Path | None) -> None:
@@ -1570,24 +1570,14 @@ rows_by_id_for_mode = {str(x.get("candidate_id")): x for x in rows_for_mode}
 detail_mode = bool(selected_cid_for_mode and selected_cid_for_mode in rows_by_id_for_mode)
 
 if not detail_mode:
-    label_col, tools_col = st.columns([1.35, 1], gap="large")
-    with label_col:
+    work_left, work_right = st.columns([1.35, 1], gap="large")
+    with work_left:
         st.markdown('<div class="field-label">上传待比对图片</div>', unsafe_allow_html=True)
-    with tools_col:
-        st.markdown('<div class="field-label">&nbsp;</div>', unsafe_allow_html=True)
-
-    upload_col, gallery_col = st.columns([1.35, 1], gap="large")
-    with upload_col:
         uploaded = st.file_uploader(
             "上传待比对图片",
             type=["jpg", "jpeg", "png", "webp", "bmp"],
             label_visibility="collapsed",
         )
-    with gallery_col:
-        _render_gallery_preview(gallery_dir, gallery_count)
-
-    preview_col, spacer_col = st.columns([1.35, 1], gap="large")
-    with preview_col:
         st.markdown('<div class="upload-preview-tight">', unsafe_allow_html=True)
         if uploaded is not None:
             st.image(uploaded, caption="待比对图片", use_container_width=True)
@@ -1600,8 +1590,9 @@ if not detail_mode:
             use_container_width=True,
             disabled=uploaded is None or gallery_count <= 0,
         )
-    with spacer_col:
-        st.empty()
+    with work_right:
+        st.markdown('<div class="field-label">&nbsp;</div>', unsafe_allow_html=True)
+        _render_gallery_preview(gallery_dir, gallery_count)
 
     if start and uploaded is not None:
         st.session_state.pop("selected_candidate_id", None)
