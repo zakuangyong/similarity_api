@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>图库管理 - 工作台原型</title>
+  <style>
+    :root {
+      --bg: #07090c;
+      --panel: #1f252e;
+      --card: #10161d;
+      --card-2: #0c1117;
+      --text: #edf4ff;
+      --muted: #9aa8b8;
+      --accent: #2ea8e5;
+      --radius: 10px;
+      --shadow: 0 22px 70px rgba(0,0,0,.34);
+      color-scheme: dark;
+      font-family: "Microsoft YaHei UI", "PingFang SC", "Source Han Sans SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(12,17,23,.25); }
+    ::-webkit-scrollbar-thumb { background: rgba(154,168,184,.34); border-radius: 999px; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: 76px;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      align-items: center;
+      gap: 24px;
+      padding: 0 32px;
+      background: #1f252e;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 12px 32px rgba(0,0,0,.22);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      color: #f5fbff;
+      font-size: 18px;
+      font-weight: 1000;
+      white-space: nowrap;
+    }
+    .bot-mark {
+      width: 38px;
+      height: 32px;
+      position: relative;
+      flex: 0 0 auto;
+      border-radius: 15px 15px 12px 12px;
+      background:
+        radial-gradient(circle at 32% 48%, #243849 0 8%, transparent 9%),
+        radial-gradient(circle at 68% 48%, #243849 0 8%, transparent 9%),
+        linear-gradient(180deg, #f2f8ff, #a8bed3 58%, #748aa0);
+      border: 1px solid rgba(255,255,255,.35);
+      box-shadow: inset 0 -4px 8px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.25);
+    }
+    .bot-mark::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -10px;
+      width: 5px;
+      height: 10px;
+      border-radius: 999px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #ff9f43, #e66b19);
+    }
+    .bot-mark::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      right: 7px;
+      bottom: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(36,56,73,.28);
+    }
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .main-nav::-webkit-scrollbar { display: none; }
+    .main-nav a {
+      color: #edf4ff;
+      opacity: .92;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 11px 10px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .main-nav a:hover {
+      background: rgba(255,255,255,.06);
+      opacity: 1;
+    }
+    .main-nav a.active {
+      color: #7fd0ff;
+      background: rgba(97,111,132,.48);
+      padding-inline: 20px;
+    }
+
+    .page {
+      padding: 24px 30px 34px;
+    }
+    .gallery-shell {
+      max-width: 1560px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .gallery-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 26px 32px 22px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    h1, p { margin: 0; }
+    h1 {
+      font-size: 28px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+    .back {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,.14);
+      background: var(--card);
+      color: #c8d6e6;
+      border-radius: 8px;
+      padding: 0 16px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .back:hover {
+      border-color: rgba(46,168,229,.62);
+      color: #fff;
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      padding: 26px 32px 32px;
+    }
+    .gallery-card {
+      background: rgba(12,17,23,.74);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+    .gallery-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(46,168,229,.55);
+      box-shadow: 0 18px 42px rgba(46,168,229,.10);
+    }
+    .gallery-card img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      display: block;
+      object-fit: contain;
+      background: #11181d;
+    }
+    .gallery-card figcaption {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding: 10px 12px;
+      color: #dce8f7;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    @media (max-width: 760px) {
+      .app-header {
+        grid-template-columns: 1fr;
+        height: auto;
+        gap: 10px;
+        padding: 12px 16px;
+      }
+      .main-nav {
+        gap: 10px;
+        padding-bottom: 2px;
+      }
+      .main-nav a {
+        font-size: 14px;
+      }
+      .page { padding: 12px; }
+      .gallery-head {
+        grid-template-columns: 1fr;
+        padding: 22px 18px 18px;
+      }
+      .gallery-grid {
+        grid-template-columns: 1fr;
+        padding: 18px;
+      }
+      h1 { font-size: 23px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header" aria-label="产品导航">
+    <div class="brand">
+      <span class="bot-mark" aria-hidden="true"></span>
+      <span>Ragentic Designer</span>
+    </div>
+    <nav class="main-nav" aria-label="主导航">
+      <a href="#">首页</a>
+      <a href="#">创意设计</a>
+      <a href="#">图像渲染</a>
+      <a href="#">图像编辑</a>
+      <a href="#">图生视频</a>
+      <a href="#">3D生成</a>
+      <a href="#">资产管理</a>
+      <a href="#">历史记录</a>
+      <a class="active" href="01_workbench.html">对比查重</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="gallery-shell" aria-label="图库管理">
+      <div class="gallery-head">
+        <div>
+          <h1>图库管理</h1>
+          <p class="sub">14 张可检索图片 · 正面车辆图库</p>
+        </div>
+        <a class="back" href="01_workbench.html">返回分析工作台</a>
+      </div>
+
+      <div class="gallery-grid">
+        <figure class="gallery-card"><img src="../img/front/保时捷911.png" alt="保时捷911" /><figcaption>保时捷911</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/别克GL8.png" alt="别克GL8" /><figcaption>别克GL8</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/奔驰C级.png" alt="奔驰C级" /><figcaption>奔驰C级</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/奥迪A4L.png" alt="奥迪A4L" /><figcaption>奥迪A4L</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/奥迪A6L.png" alt="奥迪A6L" /><figcaption>奥迪A6L</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/奥迪Q5L.png" alt="奥迪Q5L" /><figcaption>奥迪Q5L</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/宝马3系.png" alt="宝马3系" /><figcaption>宝马3系</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/宝马5系.png" alt="宝马5系" /><figcaption>宝马5系</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/小米su7.png" alt="小米su7" /><figcaption>小米su7</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/星耀7.png" alt="星耀7" /><figcaption>星耀7</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/汉.png" alt="汉" /><figcaption>汉</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/海豹06.jpg" alt="海豹06" /><figcaption>海豹06</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/红旗H5.png" alt="红旗H5" /><figcaption>红旗H5</figcaption></figure>
+        <figure class="gallery-card"><img src="../img/front/欧萌达_cutout.png" alt="欧萌达" /><figcaption>欧萌达</figcaption></figure>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>汽车图片相似度分析 - 工作台原型</title>
+  <style>
+    :root {
+      --bg: #07090c;
+      --panel: #1f252e;
+      --panel-2: #15191f;
+      --card: #10161d;
+      --card-2: #0c1117;
+      --line: rgba(255,255,255,.10);
+      --line-strong: rgba(255,255,255,.16);
+      --text: #edf4ff;
+      --muted: #9aa8b8;
+      --muted-2: #6f7f91;
+      --accent: #2ea8e5;
+      --accent-dark: #1479b8;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --radius: 10px;
+      --shadow: 0 20px 60px rgba(0,0,0,.32);
+      color-scheme: dark;
+      font-family: "Microsoft YaHei UI", "PingFang SC", "Source Han Sans SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-width: 320px;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(12,17,23,.25); }
+    ::-webkit-scrollbar-thumb { background: rgba(154,168,184,.34); border-radius: 999px; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: 76px;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      align-items: center;
+      gap: 24px;
+      padding: 0 32px;
+      background: #1f252e;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 12px 32px rgba(0,0,0,.22);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      color: #f5fbff;
+      font-size: 18px;
+      font-weight: 1000;
+      white-space: nowrap;
+    }
+    .bot-mark {
+      width: 38px;
+      height: 32px;
+      position: relative;
+      flex: 0 0 auto;
+      border-radius: 15px 15px 12px 12px;
+      background:
+        radial-gradient(circle at 32% 48%, #243849 0 8%, transparent 9%),
+        radial-gradient(circle at 68% 48%, #243849 0 8%, transparent 9%),
+        linear-gradient(180deg, #f2f8ff, #a8bed3 58%, #748aa0);
+      border: 1px solid rgba(255,255,255,.35);
+      box-shadow: inset 0 -4px 8px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.25);
+    }
+    .bot-mark::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -10px;
+      width: 5px;
+      height: 10px;
+      border-radius: 999px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #ff9f43, #e66b19);
+    }
+    .bot-mark::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      right: 7px;
+      bottom: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(36,56,73,.28);
+    }
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .main-nav::-webkit-scrollbar { display: none; }
+    .main-nav a {
+      color: #edf4ff;
+      opacity: .92;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 11px 10px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .main-nav a:hover {
+      background: rgba(255,255,255,.06);
+      opacity: 1;
+    }
+    .main-nav a.active {
+      color: #7fd0ff;
+      background: rgba(97,111,132,.48);
+      padding-inline: 20px;
+    }
+
+    .shell {
+      height: calc(100dvh - 76px);
+      overflow: hidden;
+      padding: 14px 30px 16px;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: 380px minmax(760px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .sidebar {
+      padding: 28px 46px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      font-size: 26px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    h2 {
+      font-size: 25px;
+      line-height: 1.25;
+      margin: 24px 44px 14px;
+    }
+    .field-title {
+      font-size: 18px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+
+    .upload-box {
+      border: 1px dashed rgba(255,255,255,.36);
+      background: var(--card-2);
+      border-radius: 8px;
+      min-height: 150px;
+      display: grid;
+      place-items: center;
+      color: var(--accent-dark);
+      transition: border-color .16s ease, background .16s ease;
+    }
+    .upload-box:hover {
+      border-color: rgba(46,168,229,.78);
+      background: #101823;
+    }
+    .upload-icon {
+      width: 58px;
+      height: 48px;
+      border: 5px solid rgba(20,121,184,.7);
+      border-radius: 6px;
+      position: relative;
+      margin: 0 auto 12px;
+    }
+    .upload-icon:before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(20,121,184,.78);
+      left: 10px;
+      top: 10px;
+    }
+    .upload-icon:after {
+      content: "";
+      position: absolute;
+      left: 9px;
+      right: 7px;
+      bottom: 8px;
+      height: 24px;
+      background: linear-gradient(135deg, transparent 0 28%, rgba(20,121,184,.8) 29% 52%, transparent 53%),
+                  linear-gradient(45deg, transparent 0 35%, rgba(20,121,184,.8) 36% 62%, transparent 63%);
+    }
+    .upload-text {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+    }
+    .select-row {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+    .select-label {
+      color: #edf4ff;
+      font-size: 16px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .view-select,
+    .vehicle-select {
+      width: 100%;
+      height: 44px;
+      border: 1px solid rgba(255,255,255,.42);
+      background:
+        linear-gradient(45deg, transparent 50%, rgba(255,255,255,.72) 50%) right 22px center / 9px 9px no-repeat,
+        linear-gradient(135deg, rgba(255,255,255,.72) 50%, transparent 50%) right 14px center / 9px 9px no-repeat,
+        var(--card-2);
+      border-radius: 8px;
+      color: #dce8f7;
+      appearance: none;
+      padding: 0 44px 0 16px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .view-select:focus-visible,
+    .vehicle-select:focus-visible {
+      outline: 2px solid rgba(127,208,255,.8);
+      outline-offset: 2px;
+    }
+    .select-like,
+    .number-like {
+      height: 44px;
+      border: 1px solid rgba(255,255,255,.42);
+      background: var(--card-2);
+      border-radius: 8px;
+      color: #dce8f7;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px 0 28px;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .select-like span {
+      width: 0;
+      height: 0;
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      border-top: 11px solid rgba(255,255,255,.72);
+    }
+    .topk-row {
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 18px;
+      align-items: center;
+    }
+    .label {
+      color: #c8d6e6;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .sidebar .hint {
+      display: none;
+    }
+    .number-like {
+      justify-content: center;
+      padding: 0;
+    }
+    .primary {
+      width: 100%;
+      height: 42px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #1bb4ec, #0ba4dd);
+      color: #f6fbff;
+      font-size: 17px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(46,168,229,.20);
+    }
+    .primary:hover { filter: brightness(1.08); }
+
+    .result-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .result-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 24px 30px 14px 44px;
+    }
+    .result-head h2 {
+      margin: 0;
+    }
+    .gallery-entry {
+      width: 100%;
+      min-width: 0;
+      height: 44px;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 8px;
+      background: rgba(255,255,255,.10);
+      color: #edf4ff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 900;
+      transition: border-color .16s ease, background .16s ease, color .16s ease;
+    }
+    .sidebar .gallery-entry {
+      margin-top: auto;
+      background: rgba(255,255,255,.12);
+    }
+    .gallery-entry:hover {
+      border-color: rgba(46,168,229,.58);
+      background: rgba(46,168,229,.16);
+      color: #fff;
+    }
+    .gallery-entry:focus-visible {
+      outline: 2px solid rgba(127,208,255,.8);
+      outline-offset: 2px;
+    }
+    .result-stage {
+      flex: 1;
+      min-height: 0;
+      margin: 0 30px 16px;
+      background: var(--card-2);
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 8px;
+      padding: 18px 24px;
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) auto;
+      gap: 24px;
+      align-items: center;
+      justify-content: center;
+    }
+    .query-card {
+      background: rgba(21,28,37,.72);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .query-card img,
+    .candidate-card img,
+    .gallery-card img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: contain;
+      background: #11181d;
+      display: block;
+    }
+    .query-meta {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding: 11px 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+    .query-name {
+      font-size: 15px;
+      font-weight: 900;
+    }
+    .query-note {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .candidate-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 176px);
+      gap: 10px 16px;
+      justify-content: center;
+    }
+    .candidate-card {
+      position: relative;
+      display: block;
+      background: rgba(21,28,37,.64);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+    .candidate-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(46,168,229,.65);
+      box-shadow: 0 18px 42px rgba(46,168,229,.12);
+    }
+    .candidate-card img {
+      aspect-ratio: auto;
+      height: 96px;
+    }
+    .badge {
+      position: absolute;
+      top: 5px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.62);
+      border: 1px solid rgba(255,255,255,.14);
+      padding: 3px 5px;
+      font-size: 9px;
+      font-weight: 1000;
+      backdrop-filter: blur(8px);
+    }
+    .rank { left: 5px; }
+    .score { right: 5px; color: #bbf7d0; border-color: rgba(52,211,153,.5); }
+    .score.mid { color: #bae6fd; border-color: rgba(46,168,229,.55); }
+    .score.warn { color: #fde68a; border-color: rgba(251,191,36,.58); }
+    .card-foot {
+      min-height: 28px;
+      padding: 6px 8px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+    .car-name {
+      color: #edf4ff;
+      font-size: 11px;
+      font-weight: 900;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .detail-link {
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1280px) {
+      .app-grid { grid-template-columns: 330px 1fr; }
+      .result-stage { min-height: 0; }
+    }
+
+    @media (max-width: 900px) {
+      .app-header {
+        grid-template-columns: 1fr;
+        height: auto;
+        gap: 10px;
+        padding: 12px 16px;
+      }
+      .main-nav {
+        gap: 10px;
+        padding-bottom: 2px;
+      }
+      .main-nav a {
+        font-size: 14px;
+      }
+      .shell {
+        height: auto;
+        min-height: calc(100dvh - 76px);
+        overflow: visible;
+        padding: 12px;
+      }
+      .app-grid { grid-template-columns: 1fr; }
+      .sidebar { padding: 28px; }
+      .result-head {
+        margin: 28px 18px 18px;
+      }
+      .result-stage {
+        margin: 0 18px 18px;
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+      .candidate-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header" aria-label="产品导航">
+    <div class="brand">
+      <span class="bot-mark" aria-hidden="true"></span>
+      <span>Ragentic Designer</span>
+    </div>
+    <nav class="main-nav" aria-label="主导航">
+      <a href="#">首页</a>
+      <a href="#">创意设计</a>
+      <a href="#">图像渲染</a>
+      <a href="#">图像编辑</a>
+      <a href="#">图生视频</a>
+      <a href="#">3D生成</a>
+      <a href="#">资产管理</a>
+      <a href="#">历史记录</a>
+      <a class="active" href="01_workbench.html">对比查重</a>
+    </nav>
+  </header>
+  <main class="shell">
+    <section class="app-grid" id="workbenchGrid" aria-label="相似度查重工作台">
+      <aside class="panel sidebar">
+        <h1>相似度查重</h1>
+
+        <div class="select-row">
+          <label class="select-label" for="viewSelect">视角选择</label>
+          <select class="view-select" id="viewSelect" aria-label="视角选择">
+            <option selected>正脸视图</option>
+            <option>侧面车身视图</option>
+            <option>尾部视图</option>
+          </select>
+        </div>
+
+        <div class="select-row">
+          <label class="select-label" for="vehicleSelect">车型选择</label>
+          <select class="vehicle-select" id="vehicleSelect" aria-label="车型选择">
+            <option selected>SUV</option>
+            <option>轿车</option>
+            <option>轿跑</option>
+            <option>越野</option>
+            <option>MPV</option>
+            <option>皮卡</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="field-title">上传待对比图片</div>
+          <div class="upload-box" role="button" tabindex="0" aria-label="上传待对比图片">
+            <div>
+              <div class="upload-icon"></div>
+              <div class="upload-text">上传</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="topk-row">
+          <div>
+            <div class="label">相似度Top-K</div>
+            <div class="hint">返回最相似的前 N 张候选图。</div>
+          </div>
+          <div class="number-like">10</div>
+        </div>
+
+        <button class="primary" type="button">开始比对</button>
+        <a class="gallery-entry" href="03_gallery.html">图库管理</a>
+      </aside>
+
+      <section class="panel result-panel">
+        <div class="result-head">
+          <h2>分析结果</h2>
+        </div>
+        <div class="result-stage">
+          <article class="query-card">
+            <img src="../img/front/星耀7.png" alt="上传待比对车辆：星耀7" />
+            <div class="query-meta">
+              <div class="query-name">上传比对图片</div>
+              <div class="query-note">当前样例：星耀7</div>
+            </div>
+          </article>
+
+          <div class="candidate-grid" aria-label="Top-K 相似候选">
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 1</span>
+              <span class="badge score">90 · 高相似</span>
+              <img src="../img/front/红旗H5.png" alt="候选车辆：红旗H5" />
+              <div class="card-foot"><span class="car-name">红旗H5</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 2</span>
+              <span class="badge score mid">78.8 · 中高相似</span>
+              <img src="../img/front/海豹06.png" alt="候选车辆：海豹06" />
+              <div class="card-foot"><span class="car-name">海豹06</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 3</span>
+              <span class="badge score mid">76.6 · 中高相似</span>
+              <img src="../img/front/宝马3系.png" alt="候选车辆：宝马3系" />
+              <div class="card-foot"><span class="car-name">宝马3系</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 4</span>
+              <span class="badge score mid">75.2 · 中高相似</span>
+              <img src="../img/front/奥迪Q5L.png" alt="候选车辆：奥迪Q5L" />
+              <div class="card-foot"><span class="car-name">奥迪Q5L</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 5</span>
+              <span class="badge score mid">73.4 · 中高相似</span>
+              <img src="../img/front/别克GL8.png" alt="候选车辆：别克GL8" />
+              <div class="card-foot"><span class="car-name">别克GL8</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 6</span>
+              <span class="badge score mid">70.8 · 中高相似</span>
+              <img src="../img/front/保时捷911.png" alt="候选车辆：保时捷911" />
+              <div class="card-foot"><span class="car-name">保时捷911</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 7</span>
+              <span class="badge score warn">69.4 · 局部相似</span>
+              <img src="../img/front/奥迪A6L.png" alt="候选车辆：奥迪A6L" />
+              <div class="card-foot"><span class="car-name">奥迪A6L</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 8</span>
+              <span class="badge score warn">68.7 · 局部相似</span>
+              <img src="../img/front/汉.png" alt="候选车辆：汉" />
+              <div class="card-foot"><span class="car-name">汉</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 9</span>
+              <span class="badge score warn">67.2 · 局部相似</span>
+              <img src="../img/front/宝马5系.png" alt="候选车辆：宝马5系" />
+              <div class="card-foot"><span class="car-name">宝马5系</span><span class="detail-link">查看详情</span></div>
+            </a>
+            <a class="candidate-card" href="02_detail.html">
+              <span class="badge rank">Top 10</span>
+              <span class="badge score warn">65.9 · 局部相似</span>
+              <img src="../img/front/奔驰C级.png" alt="候选车辆：奔驰C级" />
+              <div class="card-foot"><span class="car-name">奔驰C级</span><span class="detail-link">查看详情</span></div>
+            </a>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>汽车图片相似度分析 - 详情页原型</title>
+  <style>
+    :root {
+      --bg: #07090c;
+      --panel: #1f252e;
+      --panel-2: #15191f;
+      --card: #10161d;
+      --card-2: #0c1117;
+      --line: rgba(255,255,255,.10);
+      --line-strong: rgba(255,255,255,.16);
+      --text: #edf4ff;
+      --muted: #9aa8b8;
+      --accent: #2ea8e5;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --radius: 10px;
+      --shadow: 0 22px 70px rgba(0,0,0,.34);
+      color-scheme: dark;
+      font-family: "Microsoft YaHei UI", "PingFang SC", "Source Han Sans SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-width: 320px;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(12,17,23,.25); }
+    ::-webkit-scrollbar-thumb { background: rgba(154,168,184,.34); border-radius: 999px; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: 76px;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      align-items: center;
+      gap: 24px;
+      padding: 0 32px;
+      background: #1f252e;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 12px 32px rgba(0,0,0,.22);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      color: #f5fbff;
+      font-size: 18px;
+      font-weight: 1000;
+      white-space: nowrap;
+    }
+    .bot-mark {
+      width: 38px;
+      height: 32px;
+      position: relative;
+      flex: 0 0 auto;
+      border-radius: 15px 15px 12px 12px;
+      background:
+        radial-gradient(circle at 32% 48%, #243849 0 8%, transparent 9%),
+        radial-gradient(circle at 68% 48%, #243849 0 8%, transparent 9%),
+        linear-gradient(180deg, #f2f8ff, #a8bed3 58%, #748aa0);
+      border: 1px solid rgba(255,255,255,.35);
+      box-shadow: inset 0 -4px 8px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.25);
+    }
+    .bot-mark::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -10px;
+      width: 5px;
+      height: 10px;
+      border-radius: 999px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #ff9f43, #e66b19);
+    }
+    .bot-mark::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      right: 7px;
+      bottom: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(36,56,73,.28);
+    }
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .main-nav::-webkit-scrollbar { display: none; }
+    .main-nav a {
+      color: #edf4ff;
+      opacity: .92;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 11px 10px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .main-nav a:hover {
+      background: rgba(255,255,255,.06);
+      opacity: 1;
+    }
+    .main-nav a.active {
+      color: #7fd0ff;
+      background: rgba(97,111,132,.48);
+      padding-inline: 20px;
+    }
+
+    .shell {
+      height: calc(100dvh - 76px);
+      overflow: hidden;
+      padding: 14px 30px 16px;
+    }
+    .app-grid {
+      display: grid;
+      grid-template-columns: 380px minmax(760px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+      height: 100%;
+      min-height: 0;
+    }
+    .sidebar {
+      padding: 34px 46px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .field-title {
+      font-size: 19px;
+      font-weight: 900;
+      margin-bottom: 14px;
+    }
+    .upload-box {
+      border: 1px dashed rgba(255,255,255,.36);
+      background: var(--card-2);
+      border-radius: 8px;
+      min-height: 188px;
+      display: grid;
+      place-items: center;
+      color: var(--accent-dark);
+      transition: border-color .16s ease, background .16s ease;
+    }
+    .upload-box:hover {
+      border-color: rgba(46,168,229,.78);
+      background: #101823;
+    }
+    .upload-icon {
+      width: 58px;
+      height: 48px;
+      border: 5px solid rgba(20,121,184,.7);
+      border-radius: 6px;
+      position: relative;
+      margin: 0 auto 18px;
+    }
+    .upload-icon:before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(20,121,184,.78);
+      left: 10px;
+      top: 10px;
+    }
+    .upload-icon:after {
+      content: "";
+      position: absolute;
+      left: 9px;
+      right: 7px;
+      bottom: 8px;
+      height: 24px;
+      background: linear-gradient(135deg, transparent 0 28%, rgba(20,121,184,.8) 29% 52%, transparent 53%),
+                  linear-gradient(45deg, transparent 0 35%, rgba(20,121,184,.8) 36% 62%, transparent 63%);
+    }
+    .upload-text {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .control {
+      display: grid;
+      gap: 8px;
+    }
+    .select-like,
+    .number-like {
+      height: 44px;
+      border: 1px solid rgba(255,255,255,.42);
+      background: var(--card-2);
+      border-radius: 8px;
+      color: #dce8f7;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px 0 28px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .select-like span {
+      width: 0;
+      height: 0;
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      border-top: 11px solid rgba(255,255,255,.72);
+    }
+    .topk-row {
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 18px;
+      align-items: center;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 7px;
+      line-height: 1.5;
+    }
+    .number-like {
+      justify-content: center;
+      padding: 0;
+    }
+    .primary {
+      width: 100%;
+      height: 42px;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #1bb4ec, #0ba4dd);
+      color: #f6fbff;
+      font-size: 17px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(46,168,229,.20);
+    }
+    .primary:hover { filter: brightness(1.08); }
+    .result-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      margin-bottom: 0;
+    }
+    .result-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 24px 30px 14px 44px;
+    }
+    .result-head h2 {
+      margin: 0;
+    }
+    .detail-stage {
+      flex: 1;
+      min-height: 0;
+      margin: 0 30px 16px;
+      background: var(--card-2);
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .detail-canvas {
+      min-width: 980px;
+      padding: 0 8px 8px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(5,8,12,.96);
+      padding: 0 0 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+    }
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    .back {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: var(--card);
+      color: #c8d6e6;
+      border-radius: 8px;
+      padding: 0 18px;
+      text-decoration: none;
+      font-weight: 900;
+    }
+    .back:hover { border-color: rgba(46,168,229,.55); color: #fff; }
+
+    .anchor-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .anchor-nav a {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(31,37,46,.76);
+      color: #c8d6e6;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .anchor-nav a:hover { border-color: rgba(46,168,229,.58); color: #edf4ff; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: 280px minmax(420px, 1fr) 300px;
+      gap: 20px;
+      padding: 20px;
+    }
+    .score-card,
+    .summary-points,
+    .weight-card,
+    .contour-card,
+    .image-card,
+    .part-card,
+    .metric {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+    }
+    .score-card {
+      padding: 22px 24px;
+      display: grid;
+      align-content: center;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+    .big-score {
+      font-size: 42px;
+      font-weight: 1000;
+      line-height: 1;
+    }
+    .tag {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      border: 1px solid rgba(46,168,229,.48);
+      color: #bae6fd;
+      border-radius: 999px;
+      padding: 6px 10px;
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .tag.good { border-color: rgba(52,211,153,.5); color: #bbf7d0; }
+    .tag.warn { border-color: rgba(251,191,36,.58); color: #fde68a; }
+    .tag.danger { border-color: rgba(248,113,113,.64); color: #fecaca; }
+    .summary-points {
+      padding: 18px;
+    }
+    .summary-title {
+      font-size: 20px;
+      font-weight: 1000;
+      margin-bottom: 14px;
+    }
+    .point-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+    }
+    .point-list li {
+      list-style: none;
+      background: rgba(12,17,23,.62);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 8px;
+      color: #dce8f7;
+      font-size: 15px;
+      line-height: 1.55;
+      padding: 10px 12px;
+    }
+    .weight-card {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+    .weight-row {
+      display: grid;
+      gap: 8px;
+    }
+    .weight-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      font-weight: 900;
+    }
+    .weight-name { color: #c8d6e6; font-size: 13px; }
+    .weight-score { font-size: 20px; }
+    .bar {
+      height: 7px;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar span {
+      display: block;
+      height: 100%;
+      width: var(--value);
+      background: linear-gradient(90deg, var(--accent), var(--good));
+      border-radius: inherit;
+    }
+
+    .section {
+      padding: 20px;
+    }
+    #contour.section {
+      padding: 16px 18px 18px;
+    }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: baseline;
+      margin-bottom: 16px;
+    }
+    #contour .section-head {
+      margin-bottom: 12px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+    .section-note {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .contour-layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 300px) minmax(360px, 1fr);
+      gap: 26px;
+      align-items: start;
+    }
+    .contour-card {
+      padding: 14px;
+      min-height: 330px;
+    }
+    .contour-score {
+      font-size: 32px;
+      font-weight: 1000;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .legend {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #c8d6e6;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .swatch {
+      width: 22px;
+      height: 12px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .yellow { background: #fff200; }
+    .red { background: #f20f16; }
+    .green { background: #15ef37; }
+    .contour-copy {
+      color: #c8d6e6;
+      font-size: 12px;
+      line-height: 1.55;
+      margin-top: 14px;
+    }
+    .image-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      justify-items: start;
+    }
+    .image-card {
+      overflow: hidden;
+    }
+    .image-card.large {
+      grid-column: 1 / -1;
+      width: min(100%, 440px);
+      justify-self: start;
+    }
+    .image-card img,
+    .part-tile img {
+      display: block;
+      width: 100%;
+      background: #11181d;
+      object-fit: contain;
+    }
+    .image-card img {
+      aspect-ratio: 16 / 9;
+    }
+    .image-caption,
+    .part-caption {
+      border-top: 1px solid rgba(255,255,255,.08);
+      color: #c8d6e6;
+      font-size: 13px;
+      font-weight: 900;
+      padding: 9px 11px;
+    }
+    #contour .image-caption {
+      text-align: center;
+    }
+
+    .diff-map {
+      background: #050505;
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+    }
+    .diff-map img {
+      width: 100%;
+      max-width: 440px;
+      height: auto;
+      display: block;
+      object-fit: contain;
+      aspect-ratio: auto;
+    }
+    .contour-footnote {
+      width: min(100%, 440px);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .parts-summary {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+      align-items: start;
+    }
+    .part-score-card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+      padding: 22px 24px;
+    }
+    .parts-image-pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .part-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+    }
+    .part-card {
+      padding: 16px;
+    }
+    .part-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .part-title {
+      font-size: 22px;
+      font-weight: 1000;
+      line-height: 1.25;
+    }
+    .part-badge {
+      border: 1px solid rgba(52,211,153,.5);
+      color: #bbf7d0;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 1000;
+      white-space: nowrap;
+    }
+    .part-badge.mid {
+      border-color: rgba(46,168,229,.55);
+      color: #bae6fd;
+    }
+    .part-badge.warn {
+      border-color: rgba(251,191,36,.58);
+      color: #fde68a;
+    }
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      column-gap: 16px;
+      row-gap: 10px;
+      background: #05080c;
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .part-tile {
+      background: var(--card-2);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .part-tile img,
+    .part-tile .tile-diff {
+      aspect-ratio: 1 / 1;
+    }
+    .tile-crop.mirror { object-position: 58% 30%; object-fit: cover; }
+    .tile-crop.light { object-position: 42% 56%; object-fit: cover; }
+    .tile-crop.grille { object-position: 50% 62%; object-fit: cover; }
+    .tile-crop.glass { object-position: 50% 28%; object-fit: cover; }
+    .part-caption {
+      padding: 7px 8px;
+      color: #8ab7d8;
+      font-size: 12px;
+    }
+    .tile-diff {
+      background:
+        radial-gradient(circle at 66% 30%, rgba(242,15,22,.95) 0 12%, transparent 13%),
+        linear-gradient(120deg, transparent 0 21%, rgba(21,239,55,.96) 22% 35%, transparent 36%),
+        linear-gradient(168deg, transparent 0 64%, rgba(242,15,22,.92) 65% 74%, transparent 75%),
+        #10e739;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .metrics {
+      display: none;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .metric {
+      padding: 9px;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .metric b {
+      display: block;
+      font-size: 15px;
+      margin-top: 2px;
+    }
+
+    .app-grid > .panel {
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      margin-bottom: 0;
+    }
+    .sidebar .label {
+      color: #c8d6e6;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    @media (max-width: 1280px) {
+      .app-grid {
+        grid-template-columns: 330px 1fr;
+      }
+      .summary,
+      .parts-summary {
+        grid-template-columns: 1fr;
+      }
+      .part-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .app-header {
+        grid-template-columns: 1fr;
+        height: auto;
+        gap: 10px;
+        padding: 12px 16px;
+      }
+      .main-nav {
+        gap: 10px;
+        padding-bottom: 2px;
+      }
+      .main-nav a {
+        font-size: 14px;
+      }
+      .page { padding: 16px; }
+      .shell {
+        height: auto;
+        min-height: calc(100dvh - 76px);
+        overflow: visible;
+        padding: 12px;
+      }
+      .app-grid {
+        grid-template-columns: 1fr;
+      }
+      .sidebar { padding: 28px; }
+      .topbar { grid-template-columns: 1fr; position: static; }
+      .result-head {
+        margin: 28px 18px 18px;
+      }
+      .detail-stage {
+        margin: 0 18px 18px;
+        overflow: visible;
+      }
+      .detail-canvas {
+        min-width: 0;
+        padding: 0;
+      }
+      .summary,
+      .section { padding: 14px; }
+      .contour-layout {
+        grid-template-columns: 1fr;
+      }
+      .image-grid,
+      .parts-image-pair,
+      .tiles,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+      .diff-map img {
+        width: 100%;
+      }
+      h1 { font-size: 22px; }
+      h2 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header" aria-label="产品导航">
+    <div class="brand">
+      <span class="bot-mark" aria-hidden="true"></span>
+      <span>Ragentic Designer</span>
+    </div>
+    <nav class="main-nav" aria-label="主导航">
+      <a href="#">首页</a>
+      <a href="#">创意设计</a>
+      <a href="#">图像渲染</a>
+      <a href="#">图像编辑</a>
+      <a href="#">图生视频</a>
+      <a href="#">3D生成</a>
+      <a href="#">资产管理</a>
+      <a href="#">历史记录</a>
+      <a class="active" href="01_workbench.html">对比查重</a>
+    </nav>
+  </header>
+  <main class="shell">
+    <section class="app-grid" aria-label="汽车图片相似度分析工作台">
+      <aside class="panel sidebar">
+        <h1>汽车图片相似度分析</h1>
+
+        <div>
+          <div class="field-title">上传待对比图片</div>
+          <div class="upload-box" role="button" tabindex="0" aria-label="上传待对比图片">
+            <div>
+              <div class="upload-icon"></div>
+              <div class="upload-text">上传</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="control">
+          <div class="select-like">车型选择 <span aria-hidden="true"></span></div>
+          <div class="hint">用于限制候选图库范围，减少无关车辆干扰。</div>
+        </div>
+
+        <div class="topk-row">
+          <div>
+            <div class="label">相似度Top-K</div>
+            <div class="hint">返回最相似的前 N 张候选图。</div>
+          </div>
+          <div class="number-like">10</div>
+        </div>
+
+        <button class="primary" type="button">开始比对</button>
+      </aside>
+
+      <section class="panel result-panel">
+        <div class="result-head">
+          <h2>分析结果</h2>
+        </div>
+        <div class="detail-stage">
+          <div class="detail-canvas">
+    <header class="topbar">
+      <h1>A车 vs B车 相似度分析详情</h1>
+      <a class="back" href="01_workbench.html" aria-label="返回概览">返回概览</a>
+    </header>
+
+    <nav class="anchor-nav" aria-label="详情页快捷导航">
+      <a href="#overview">概览</a>
+      <a href="#contour">轮廓</a>
+      <a href="#evidence">部件详情</a>
+    </nav>
+
+    <section id="overview" class="panel summary" aria-label="相似度总结">
+      <article class="score-card">
+        <div class="label">总相似度</div>
+        <div class="big-score">78.8</div>
+        <div class="tag">中高相似</div>
+      </article>
+
+      <article class="summary-points">
+        <div class="summary-title">相似度分析</div>
+        <ul class="point-list">
+          <li>最终评分 78.8 分，判定为中高相似，适合进入人工复核。</li>
+          <li>整车轮廓相似度 90.6，车身基础比例和正面姿态高度接近。</li>
+          <li>共对比 6 个有效部件，后视镜相似度最高，前挡风玻璃差异较明显。</li>
+        </ul>
+      </article>
+
+      <article class="weight-card">
+        <div class="weight-row">
+          <div class="weight-head"><span class="weight-name">轮廓分 · 权重 40%</span><span class="weight-score">90.6</span></div>
+          <div class="bar" style="--value:90.6%"><span></span></div>
+        </div>
+        <div class="weight-row">
+          <div class="weight-head"><span class="weight-name">部件分 · 权重 60%</span><span class="weight-score">78.8</span></div>
+          <div class="bar" style="--value:78.8%"><span></span></div>
+        </div>
+      </article>
+    </section>
+
+    <section id="contour" class="panel section" aria-label="整体轮廓相似对比">
+      <div class="section-head">
+        <h2>整体轮廓相似对比</h2>
+      </div>
+
+      <div class="contour-layout">
+        <aside class="contour-card">
+          <div class="label">轮廓分（40%）</div>
+          <div class="contour-score">90.6</div>
+          <div class="tag good">高相似</div>
+          <div class="legend" aria-label="轮廓差异图图例">
+            <div class="legend-item"><span class="swatch yellow"></span>黄色：两车高度重合区域</div>
+            <div class="legend-item"><span class="swatch red"></span>红色：A 图独有形状区域</div>
+            <div class="legend-item"><span class="swatch green"></span>绿色：B 图独有形状区域</div>
+          </div>
+          <p class="contour-copy">结论：两车正面主体轮廓接近，差异主要集中在车头下沿、车顶线和局部外扩区域。</p>
+        </aside>
+
+        <div class="image-grid">
+          <figure class="image-card large">
+            <div class="diff-map" role="img" aria-label="整车轮廓差异图">
+              <img src="./assets/edge_diff.jpg" alt="整车轮廓差异图" />
+            </div>
+            <figcaption class="image-caption">整车轮廓差异图</figcaption>
+          </figure>
+          <div class="contour-footnote">红色和绿色只用于表达差异，不作为普通高亮色使用</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="parts" class="panel section" aria-label="部件识别与对齐标注">
+      <div class="section-head">
+        <h2>部件识别与对齐标注</h2>
+        <div class="section-note">先给部件总分，再给每个部件的可追溯证据</div>
+      </div>
+
+      <div class="parts-summary">
+        <article class="part-score-card">
+          <div class="label">部件分（60%）</div>
+          <div class="big-score">78.8</div>
+          <div class="tag">中高相似</div>
+        </article>
+        <div class="parts-image-pair">
+          <figure class="image-card">
+            <img src="./assets/A_annotation.jpg" alt="A 图部件识别标注" />
+            <figcaption class="image-caption">A 图部件识别</figcaption>
+          </figure>
+          <figure class="image-card">
+            <img src="./assets/B_annotation.jpg" alt="B 图部件识别标注" />
+            <figcaption class="image-caption">B 图部件识别</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div id="evidence" class="part-grid">
+        <article class="part-card">
+          <div class="part-head">
+            <div class="part-title">后视镜相似度评分：96.8</div>
+            <div class="part-badge">高相似</div>
+          </div>
+          <div class="tiles">
+            <div class="part-tile"><img class="tile-crop mirror" src="../img/front/星耀7.jpg" alt="A color 后视镜" /><div class="part-caption">A color</div></div>
+            <div class="part-tile"><img class="tile-crop mirror" src="../img/front/海豹06.jpg" alt="B color 后视镜" /><div class="part-caption">B color</div></div>
+            <div class="part-tile"><img class="tile-crop mirror" src="../img/front/星耀7.jpg" alt="A gray 后视镜" /><div class="part-caption">A gray</div></div>
+            <div class="part-tile"><img class="tile-crop mirror" src="../img/front/海豹06.jpg" alt="B gray 后视镜" /><div class="part-caption">B gray</div></div>
+            <div class="part-tile"><div class="tile-diff"></div><div class="part-caption">diff</div></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>CLIP</span><b>97.1</b></div>
+            <div class="metric"><span>DINO</span><b>96.4</b></div>
+            <div class="metric"><span>SSIM</span><b>94.8</b></div>
+            <div class="metric"><span>EDGE</span><b>98.2</b></div>
+          </div>
+        </article>
+
+        <article class="part-card">
+          <div class="part-head">
+            <div class="part-title">车灯相似度评分：86.4</div>
+            <div class="part-badge">高相似</div>
+          </div>
+          <div class="tiles">
+            <div class="part-tile"><img class="tile-crop light" src="../img/front/星耀7.jpg" alt="A color 车灯" /><div class="part-caption">A color</div></div>
+            <div class="part-tile"><img class="tile-crop light" src="../img/front/海豹06.jpg" alt="B color 车灯" /><div class="part-caption">B color</div></div>
+            <div class="part-tile"><img class="tile-crop light" src="../img/front/星耀7.jpg" alt="A gray 车灯" /><div class="part-caption">A gray</div></div>
+            <div class="part-tile"><img class="tile-crop light" src="../img/front/海豹06.jpg" alt="B gray 车灯" /><div class="part-caption">B gray</div></div>
+            <div class="part-tile"><div class="tile-diff"></div><div class="part-caption">diff</div></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>CLIP</span><b>84.7</b></div>
+            <div class="metric"><span>DINO</span><b>87.9</b></div>
+            <div class="metric"><span>SSIM</span><b>85.6</b></div>
+            <div class="metric"><span>EDGE</span><b>88.1</b></div>
+          </div>
+        </article>
+
+        <article class="part-card">
+          <div class="part-head">
+            <div class="part-title">前保险杠相似度评分：81.6</div>
+            <div class="part-badge mid">中高相似</div>
+          </div>
+          <div class="tiles">
+            <div class="part-tile"><img class="tile-crop grille" src="../img/front/星耀7.jpg" alt="A color 前保险杠" /><div class="part-caption">A color</div></div>
+            <div class="part-tile"><img class="tile-crop grille" src="../img/front/海豹06.jpg" alt="B color 前保险杠" /><div class="part-caption">B color</div></div>
+            <div class="part-tile"><img class="tile-crop grille" src="../img/front/星耀7.jpg" alt="A gray 前保险杠" /><div class="part-caption">A gray</div></div>
+            <div class="part-tile"><img class="tile-crop grille" src="../img/front/海豹06.jpg" alt="B gray 前保险杠" /><div class="part-caption">B gray</div></div>
+            <div class="part-tile"><div class="tile-diff"></div><div class="part-caption">diff</div></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>CLIP</span><b>82.5</b></div>
+            <div class="metric"><span>DINO</span><b>80.8</b></div>
+            <div class="metric"><span>SSIM</span><b>78.3</b></div>
+            <div class="metric"><span>EDGE</span><b>84.1</b></div>
+          </div>
+        </article>
+
+        <article class="part-card">
+          <div class="part-head">
+            <div class="part-title">前挡风玻璃相似度评分：64.6</div>
+            <div class="part-badge warn">差异明显</div>
+          </div>
+          <div class="tiles">
+            <div class="part-tile"><img class="tile-crop glass" src="../img/front/星耀7.jpg" alt="A color 前挡风玻璃" /><div class="part-caption">A color</div></div>
+            <div class="part-tile"><img class="tile-crop glass" src="../img/front/海豹06.jpg" alt="B color 前挡风玻璃" /><div class="part-caption">B color</div></div>
+            <div class="part-tile"><img class="tile-crop glass" src="../img/front/星耀7.jpg" alt="A gray 前挡风玻璃" /><div class="part-caption">A gray</div></div>
+            <div class="part-tile"><img class="tile-crop glass" src="../img/front/海豹06.jpg" alt="B gray 前挡风玻璃" /><div class="part-caption">B gray</div></div>
+            <div class="part-tile"><div class="tile-diff"></div><div class="part-caption">diff</div></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>CLIP</span><b>68.2</b></div>
+            <div class="metric"><span>DINO</span><b>63.9</b></div>
+            <div class="metric"><span>SSIM</span><b>61.4</b></div>
+            <div class="metric"><span>EDGE</span><b>65.0</b></div>
+          </div>
+        </article>
+      </div>
+    </section>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
